@@ -110,7 +110,7 @@ export default function Watched() {
                 </div>
 
                 {/* Filters */}
-                <div className="watchly-card py-4 px-1">
+                <div className="watchly-card p-4">
                     <div className="flex items-center justify-between gap-2">
                         
                             <Input
