@@ -3,7 +3,7 @@ export default function AppLogo() {
         <>
             <div className="flex mx-auto items-center justify-center">
                 <img 
-                    src="/images/Watchly.png" 
+                    src="/images/watchly.png" 
                     alt="Watchly" 
                     className="w-15 object-cover"
                 />

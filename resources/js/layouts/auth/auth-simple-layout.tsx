@@ -53,7 +53,7 @@ export default function AuthSimpleLayout({
                             >
                                 <div className="transition-transform duration-300 group-hover:scale-105">
                                     <img
-                                        src="/images/Watchly.png"
+                                        src="/images/watchly.png"
                                         alt="Watchly"
                                         className="w-28 object-contain drop-shadow-[0_0_16px_rgba(245,197,24,0.35)]"
                                     />
