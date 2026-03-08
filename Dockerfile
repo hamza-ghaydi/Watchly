@@ -21,21 +21,20 @@ RUN echo '<Directory /var/www/html/public>\n\
     Require all granted\n\
 </Directory>' >> /etc/apache2/apache2.conf
 
-RUN chown -R www-data:www-data /var/www/html
-RUN chmod -R 755 /var/www/html
-
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Install Node.js
+# Install Node
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs
 
-# Set working directory
 WORKDIR /var/www/html
 
-# Copy project files
+# Copy project
 COPY . .
+
+# Install PHP dependencies FIRST
+RUN composer install --no-dev --optimize-autoloader
 
 # Install Node dependencies
 RUN npm install
@@ -48,16 +47,13 @@ RUN mkdir -p database && \
     touch database/database.sqlite && \
     chown -R www-data:www-data database
 
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader
-
-# Set permissions
+# Permissions
 RUN chown -R www-data:www-data storage bootstrap/cache
 
-# Set Laravel public as root
+# Set Apache root
 RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf
 
-# Create storage symlink
+# Storage link
 RUN php artisan storage:link
 
 EXPOSE 80
