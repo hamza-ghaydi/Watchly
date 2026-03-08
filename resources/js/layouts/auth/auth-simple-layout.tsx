@@ -12,7 +12,7 @@ export default function AuthSimpleLayout({
 
             {/* ── Background image ── */}
             <img
-                src="/images/bg_watchly.png"
+                src="/images/bg_Watchly.png"
                 alt=""
                 aria-hidden="true"
                 className="absolute inset-0 w-full h-full object-cover object-center select-none pointer-events-none"
@@ -53,7 +53,7 @@ export default function AuthSimpleLayout({
                             >
                                 <div className="transition-transform duration-300 group-hover:scale-105">
                                     <img
-                                        src="/images/watchly.png"
+                                        src="/images/Watchly.png"
                                         alt="Watchly"
                                         className="w-28 object-contain drop-shadow-[0_0_16px_rgba(245,197,24,0.35)]"
                                     />

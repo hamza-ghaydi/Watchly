@@ -32,9 +32,9 @@
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
-        <link rel="icon" href="/images/watchly.png" sizes="any">
-        <link rel="icon" href="/images/watchly.png" type="image/svg+xml">
-        <link rel="apple-touch-icon" href="/images/watchly.png">
+        <link rel="icon" href="/images/Watchly.png" sizes="any">
+        <link rel="icon" href="/images/Watchly.png" type="image/svg+xml">
+        <link rel="apple-touch-icon" href="/images/Watchly.png">
 
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />

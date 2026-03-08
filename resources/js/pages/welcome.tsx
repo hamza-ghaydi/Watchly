@@ -140,7 +140,7 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
 
                     {/* Logo */}
                     <div className="flex items-center gap-2.5">
-                        <img src="/images/watchly.png" className='w-18' alt="Watchly" />
+                        <img src="/images/Watchly.png" className='w-18' alt="Watchly" />
                     </div>
 
                     {/* Auth links */}

@@ -86,7 +86,7 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                                 </SheetTitle>
                                 <SheetHeader className="flex justify-start text-left">
                                     <img 
-                                        src="/images/watchly.png" 
+                                        src="/images/Watchly.png" 
                                         alt="Watchly" 
                                         className="w-20 object-cover"
                                     />

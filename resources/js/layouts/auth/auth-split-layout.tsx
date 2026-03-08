@@ -18,7 +18,7 @@ export default function AuthSplitLayout({
                     className="relative z-20 flex items-center text-lg font-medium"
                 >
                     <img 
-                        src="/images/watchly.png" 
+                        src="/images/Watchly.png" 
                         alt="Watchly" 
                         className="w-20 object-cover"
                     />
@@ -32,7 +32,7 @@ export default function AuthSplitLayout({
                         className="relative z-20 flex items-center justify-center lg:hidden"
                     >
                         <img 
-                            src="/images/watchly.png" 
+                            src="/images/Watchly.png" 
                             alt="Watchly" 
                             className="w-20 object-cover"
                         />

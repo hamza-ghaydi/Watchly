@@ -27,7 +27,7 @@ export default function AuthCardLayout({
                 >
                     <div className="flex items-center justify-center">
                         <img 
-                            src="/images/watchly.png" 
+                            src="/images/Watchly.png" 
                             alt="Watchly" 
                             className="w-20 object-cover"
                         />
