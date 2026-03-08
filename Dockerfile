@@ -58,7 +58,7 @@ RUN chown -R www-data:www-data storage bootstrap/cache
 RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf
 
 # Storage link
-RUN php artisan storage:link
+RUN ln -s /var/www/html/storage/app/public /var/www/html/public/storage
 
 EXPOSE 80
 
