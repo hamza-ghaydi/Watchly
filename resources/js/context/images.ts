@@ -1,10 +1,9 @@
-import logo from '../../images/Watchly.png';
-import bg_Watchly from '../../images/bg_Watchly.png';
+import bgWatchly from '@images/bg_Watchly.png';
+import logo from '@images/logo.png';
 
-export const images = {
-    logo,
-    bg_Watchly,
+const images = {
+  bgWatchly,
+  logo,
 } as const;
 
-export type ImageKey = keyof typeof images;
 export default images;
