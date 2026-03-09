@@ -13,7 +13,8 @@ import {
     ExternalLink,
     Sparkles,
 } from 'lucide-react';
-import images from '@/context/images';
+import images from '@/constants/images';
+
 
 export default function Welcome({ canRegister = true }: { canRegister?: boolean }) {
     const { auth } = usePage().props as any;
@@ -141,7 +142,7 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
 
                     {/* Logo */}
                     <div className="flex items-center gap-2.5">
-                        <img src={images.logo} className='w-18' alt="Watchly" />
+                        <img src={images.logo} className="w-30" alt="Watchly" />
                     </div>
 
                     {/* Auth links */}

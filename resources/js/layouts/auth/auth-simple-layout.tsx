@@ -1,7 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { home } from '@/routes';
 import type { AuthLayoutProps } from '@/types';
-import images from '@/context/images';
+import images from '@/constants/images';
 
 export default function AuthSimpleLayout({
     children,
@@ -13,7 +13,7 @@ export default function AuthSimpleLayout({
 
             {/* ── Background image ── */}
             <img
-                src={images.bg_Watchly}
+                src={images.bgwatchly}
                 alt="Watchly"
                 aria-hidden="true"
                 className="absolute inset-0 w-full h-full object-cover object-center select-none pointer-events-none"
@@ -56,7 +56,7 @@ export default function AuthSimpleLayout({
                                     <img
                                         src={images.logo}
                                         alt="Watchly"
-                                        className="w-20 object-contain drop-shadow-[0_0_16px_rgba(245,197,24,0.35)]"
+                                        className="w-50 object-contain drop-shadow-[0_0_16px_rgba(245,197,24,0.35)]"
                                     />
                                 </div>
                                 <span className="sr-only">Watchly</span>

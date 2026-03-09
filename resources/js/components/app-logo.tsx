@@ -1,4 +1,4 @@
-import images from "@/context/images";
+import images from "@/constants/images";
 
 export default function AppLogo() {
     return (
@@ -7,7 +7,7 @@ export default function AppLogo() {
                 <img 
                     src={images.logo}
                     alt="Watchly" 
-                    className="w-15 object-cover"
+                    className="w-40 object-cover"
                 />
             </div>
         </>
