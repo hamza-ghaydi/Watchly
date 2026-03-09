@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { home } from '@/routes';
 import type { AuthLayoutProps } from '@/types';
+import images from '@/context/images';
 
 export default function AuthSimpleLayout({
     children,
@@ -12,8 +13,8 @@ export default function AuthSimpleLayout({
 
             {/* ── Background image ── */}
             <img
-                src="/images/bg_Watchly.png"
-                alt=""
+                src={images.bg_Watchly}
+                alt="Watchly"
                 aria-hidden="true"
                 className="absolute inset-0 w-full h-full object-cover object-center select-none pointer-events-none"
             />
@@ -53,9 +54,9 @@ export default function AuthSimpleLayout({
                             >
                                 <div className="transition-transform duration-300 group-hover:scale-105">
                                     <img
-                                        src="/images/Watchly.png"
+                                        src={images.logo}
                                         alt="Watchly"
-                                        className="w-28 object-contain drop-shadow-[0_0_16px_rgba(245,197,24,0.35)]"
+                                        className="w-20 object-contain drop-shadow-[0_0_16px_rgba(245,197,24,0.35)]"
                                     />
                                 </div>
                                 <span className="sr-only">Watchly</span>

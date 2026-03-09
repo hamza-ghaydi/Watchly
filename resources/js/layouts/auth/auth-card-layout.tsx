@@ -8,6 +8,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { home } from '@/routes';
+import images from '@/context/images';
 
 export default function AuthCardLayout({
     children,
@@ -27,7 +28,7 @@ export default function AuthCardLayout({
                 >
                     <div className="flex items-center justify-center">
                         <img 
-                            src="/images/Watchly.png" 
+                            src={images.logo}
                             alt="Watchly" 
                             className="w-20 object-cover"
                         />

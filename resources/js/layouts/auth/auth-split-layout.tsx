@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import { home } from '@/routes';
 import type { AuthLayoutProps } from '@/types';
+import images from '@/context/images';
 
 export default function AuthSplitLayout({
     children,
@@ -18,7 +19,7 @@ export default function AuthSplitLayout({
                     className="relative z-20 flex items-center text-lg font-medium"
                 >
                     <img 
-                        src="/images/Watchly.png" 
+                        src={images.logo} 
                         alt="Watchly" 
                         className="w-20 object-cover"
                     />
@@ -32,7 +33,7 @@ export default function AuthSplitLayout({
                         className="relative z-20 flex items-center justify-center lg:hidden"
                     >
                         <img 
-                            src="/images/Watchly.png" 
+                            src={images.logo} 
                             alt="Watchly" 
                             className="w-20 object-cover"
                         />
