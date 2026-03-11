@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Eye, Trash2, Star, Calendar, Clock, Film } from 'lucide-react';
@@ -18,6 +18,7 @@ interface Movie {
     runtime?: string;
     user_rating?: number;
     watched_at?: string;
+    user_already_recommended?: boolean;
 }
 
 interface MovieDetailsModalProps {
@@ -49,6 +50,9 @@ export function MovieDetailsModal({
                     <DialogTitle style={{ color: 'var(--text-primary)' }}>
                         {movie.title}
                     </DialogTitle>
+                    <DialogDescription style={{ color: 'var(--text-secondary)' }}>
+                        {movie.year} • {movie.genre?.split(',')[0] || movie.type}
+                    </DialogDescription>
                 </DialogHeader>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

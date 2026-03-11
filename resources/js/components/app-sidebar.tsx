@@ -43,6 +43,26 @@ export function AppSidebar() {
                       href: '/movies/watched',
                       icon: Eye,
                   },
+                  {
+                      title: 'Following Feed',
+                      href: '/feed',
+                      icon: BookOpen,
+                  },
+                  {
+                      title: 'Community Picks',
+                      href: '/recommendations',
+                      icon: Film,
+                  },
+                  {
+                      title: 'Watch Together',
+                      href: '/watch-together',
+                      icon: Users,
+                  },
+                  {
+                      title: 'Explore Users',
+                      href: '/users',
+                      icon: FolderGit2,
+                  },
               ]),
         ...(isAdmin
             ? [
@@ -60,6 +80,11 @@ export function AppSidebar() {
                       title: 'All Watched',
                       href: '/admin/movies/watched',
                       icon: Eye,
+                  },
+                  {
+                      title: 'Community Picks',
+                      href: '/recommendations',
+                      icon: Film,
                   },
                   {
                       title: 'Settings',

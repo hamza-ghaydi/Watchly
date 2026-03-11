@@ -64,7 +64,7 @@ export default function ToWatch() {
         if (typeFilter !== 'all') params.set('type', typeFilter);
         if (genreFilter !== 'all') params.set('genre', genreFilter);
         if (ratingFilter !== 'all') params.set('rating', ratingFilter);
-        
+
         router.get(`/movies/to-watch?${params.toString()}`, {}, { preserveState: true });
     };
 
@@ -107,8 +107,8 @@ export default function ToWatch() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="To Watch" />
-            <div className="relative z-10 flex h-full flex-1 flex-col gap-6 p-8">
-                <div className="flex items-center justify-between">
+            <div className="relative z-10 flex h-full flex-1 flex-col gap-6 p-4 lg:p-8">
+                <div className="lg:flex items-center justify-between space-y-2">
                     <div>
                         <h1 className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>To Watch</h1>
                         <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>Movies and series you want to watch</p>
@@ -124,27 +124,23 @@ export default function ToWatch() {
                 </div>
 
                 {/* Filters */}
-                <div className="watchly-card p-4">
-                    <div className="flex items-center justify-between gap-2">
-                        
-                            <Input
-                                placeholder="Search by title..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleFilter()}
-                                style={{ 
-                                    borderColor: 'var(--card-border)',
-                                    color: 'var(--text-primary)'
-                                }}
-                                
-                            />
-                        
+                <div className="watchly-card p-3 sm:p-4">
+                    <div className="flex flex-wrap items-center gap-2">
+
+                        <Input
+                            placeholder="Search by title..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleFilter()}
+                            style={{ borderColor: 'var(--card-border)', color: 'var(--text-primary)' }}
+                            className="flex-1 min-w-[160px]"
+                        />
 
                         <Select value={typeFilter} onValueChange={setTypeFilter}>
-                            <SelectTrigger style={{ borderColor: 'var(--card-border)' }}>
+                            <SelectTrigger style={{ borderColor: 'var(--card-border)' }} className="w-[120px]">
                                 <SelectValue placeholder="Type" />
                             </SelectTrigger>
-                            <SelectContent style={{borderColor: 'var(--card-border)' }}>
+                            <SelectContent style={{ borderColor: 'var(--card-border)' }}>
                                 <SelectItem value="all">All Types</SelectItem>
                                 <SelectItem value="movie">Movies</SelectItem>
                                 <SelectItem value="series">Series</SelectItem>
@@ -152,21 +148,19 @@ export default function ToWatch() {
                         </Select>
 
                         <Select value={genreFilter} onValueChange={setGenreFilter}>
-                            <SelectTrigger style={{borderColor: 'var(--card-border)' }}>
+                            <SelectTrigger style={{ borderColor: 'var(--card-border)' }} className="w-[130px]">
                                 <SelectValue placeholder="Genre" />
                             </SelectTrigger>
-                            <SelectContent style={{borderColor: 'var(--card-border)' }}>
+                            <SelectContent style={{ borderColor: 'var(--card-border)' }}>
                                 <SelectItem value="all">All Genres</SelectItem>
                                 {genres.map((genre) => (
-                                    <SelectItem key={genre} value={genre}>
-                                        {genre}
-                                    </SelectItem>
+                                    <SelectItem key={genre} value={genre}>{genre}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
 
                         <Select value={ratingFilter} onValueChange={setRatingFilter}>
-                            <SelectTrigger style={{borderColor: 'var(--card-border)' }}>
+                            <SelectTrigger style={{ borderColor: 'var(--card-border)' }} className="w-[120px]">
                                 <SelectValue placeholder="Rating" />
                             </SelectTrigger>
                             <SelectContent style={{ borderColor: 'var(--card-border)' }}>
@@ -178,6 +172,7 @@ export default function ToWatch() {
                                 <SelectItem value="5">5+ ⭐</SelectItem>
                             </SelectContent>
                         </Select>
+
                         <Button
                             onClick={handleFilter}
                             className="text-black hover:opacity-90"
@@ -186,18 +181,18 @@ export default function ToWatch() {
                             <Search className="h-4 w-4 mr-2" />
                             Apply Filters
                         </Button>
+
                         <Button
                             onClick={handleClearFilters}
                             variant="outline"
                             style={{ borderColor: 'var(--card-border)' }}
-                            className='bg-red-700'
+                            className="bg-red-700"
                         >
                             Clear
-                            
                         </Button>
+
                     </div>
                 </div>
-
                 {movies.length === 0 ? (
                     <div className="flex-1 flex items-center justify-center">
                         <div className="text-center">
@@ -243,7 +238,7 @@ export default function ToWatch() {
                 movie={selectedMovie}
             />
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                <AlertDialogContent style={{  borderColor: 'var(--card-border)' }}>
+                <AlertDialogContent style={{ borderColor: 'var(--card-border)' }}>
                     <AlertDialogHeader>
                         <AlertDialogTitle style={{ color: 'var(--text-primary)' }}>Delete Movie</AlertDialogTitle>
                         <AlertDialogDescription style={{ color: 'var(--text-secondary)' }}>

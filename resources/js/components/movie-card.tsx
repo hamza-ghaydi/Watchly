@@ -1,4 +1,4 @@
-import { Eye, Trash2, Star } from 'lucide-react';
+import { Eye, Trash2, Star, ThumbsUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface Movie {
@@ -13,6 +13,7 @@ interface Movie {
     plot: string;
     user_rating?: number;
     watched_at?: string;
+    user_already_recommended?: boolean;
 }
 
 interface MovieCardProps {
@@ -20,10 +21,12 @@ interface MovieCardProps {
     onClick?: (movie: Movie) => void;
     onMarkWatched?: (movie: Movie) => void;
     onDelete?: (movie: Movie) => void;
+    onRecommend?: (movie: Movie) => void;
     showActions?: boolean;
+    showRecommend?: boolean;
 }
 
-export function MovieCard({ movie, onClick, onMarkWatched, onDelete, showActions = true }: MovieCardProps) {
+export function MovieCard({ movie, onClick, onMarkWatched, onDelete, onRecommend, showActions = true, showRecommend = false }: MovieCardProps) {
     return (
         <div className="watchly-card overflow-hidden">
             <div 
@@ -114,6 +117,35 @@ export function MovieCard({ movie, onClick, onMarkWatched, onDelete, showActions
                                 }}
                             >
                                 <Trash2 className="h-4 w-4" />
+                            </Button>
+                        )}
+                    </div>
+                )}
+                
+                {showRecommend && onRecommend && (
+                    <div className="mt-2">
+                        {!movie.user_already_recommended ? (
+                            <Button
+                                size="sm"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onRecommend(movie);
+                                }}
+                                variant="outline"
+                                className="w-full"
+                                style={{ borderColor: 'var(--card-border)' }}
+                            >
+                                <ThumbsUp className="h-4 w-4 mr-1" />
+                                Recommend
+                            </Button>
+                        ) : (
+                            <Button
+                                size="sm"
+                                disabled
+                                className="w-full"
+                                style={{ background: 'var(--gold)', color: '#0D1117', opacity: 0.7 }}
+                            >
+                                Recommended ✓
                             </Button>
                         )}
                     </div>

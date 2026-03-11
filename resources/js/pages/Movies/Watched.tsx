@@ -3,6 +3,7 @@ import { useState } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { MovieCard } from '@/components/movie-card';
 import { MovieDetailsModal } from '@/components/movie-details-modal';
+import { RecommendModal } from '@/components/recommend-modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -16,7 +17,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { PopcornIcon, Search, X } from 'lucide-react';
+import { PopcornIcon, Search } from 'lucide-react';
 import type { BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -34,8 +35,9 @@ interface Movie {
     genre: string;
     imdb_rating: string;
     plot: string;
-    user_rating: number;
-    watched_at: string;
+    user_rating?: number;
+    watched_at?: string;
+    user_already_recommended?: boolean;
 }
 
 interface Filters {
@@ -50,6 +52,7 @@ export default function Watched() {
     const { movies, genres, filters } = usePage<{ movies: Movie[]; genres: string[]; filters: Filters }>().props;
     const [detailsModalOpen, setDetailsModalOpen] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [recommendModalOpen, setRecommendModalOpen] = useState(false);
     const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
 
     const [searchQuery, setSearchQuery] = useState(filters.search || '');
@@ -65,7 +68,7 @@ export default function Watched() {
         if (genreFilter !== 'all') params.set('genre', genreFilter);
         if (ratingFilter !== 'all') params.set('rating', ratingFilter);
         if (userRatingFilter !== 'all') params.set('user_rating', userRatingFilter);
-        
+
         router.get(`/movies/watched?${params.toString()}`, {}, { preserveState: true });
     };
 
@@ -82,6 +85,12 @@ export default function Watched() {
         setSelectedMovie(movie);
         setDetailsModalOpen(false);
         setDeleteDialogOpen(true);
+    };
+
+    const handleRecommend = (movie: Movie) => {
+        setSelectedMovie(movie);
+        setDetailsModalOpen(false);
+        setRecommendModalOpen(true);
     };
 
     const handleCardClick = (movie: Movie) => {
@@ -111,27 +120,22 @@ export default function Watched() {
 
                 {/* Filters */}
                 <div className="watchly-card p-4">
-                    <div className="flex items-center justify-between gap-2">
-                        
-                            <Input
-                                placeholder="Search by title..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleFilter()}
-                                style={{ 
-                                    borderColor: 'var(--card-border)',
-                                    color: 'var(--text-primary)'
-                                
-                                }}
-                                
-                            />
-                        
+                    <div className="flex items-center gap-2 flex-wrap">
+
+                        <Input
+                            placeholder="Search by title..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleFilter()}
+                            style={{ borderColor: 'var(--card-border)', color: 'var(--text-primary)' }}
+                            className="flex-1 min-w-[160px]"
+                        />
 
                         <Select value={typeFilter} onValueChange={setTypeFilter}>
-                            <SelectTrigger style={{  borderColor: 'var(--card-border)' }}>
+                            <SelectTrigger style={{ borderColor: 'var(--card-border)' }} className="w-[120px]">
                                 <SelectValue placeholder="Type" />
                             </SelectTrigger>
-                            <SelectContent style={{  borderColor: 'var(--card-border)' }}>
+                            <SelectContent style={{ borderColor: 'var(--card-border)' }}>
                                 <SelectItem value="all">All Types</SelectItem>
                                 <SelectItem value="movie">Movies</SelectItem>
                                 <SelectItem value="series">Series</SelectItem>
@@ -139,24 +143,22 @@ export default function Watched() {
                         </Select>
 
                         <Select value={genreFilter} onValueChange={setGenreFilter}>
-                            <SelectTrigger style={{  borderColor: 'var(--card-border)' }}>
+                            <SelectTrigger style={{ borderColor: 'var(--card-border)' }} className="w-[130px]">
                                 <SelectValue placeholder="Genre" />
                             </SelectTrigger>
-                            <SelectContent style={{  borderColor: 'var(--card-border)' }}>
+                            <SelectContent style={{ borderColor: 'var(--card-border)' }}>
                                 <SelectItem value="all">All Genres</SelectItem>
                                 {genres.map((genre) => (
-                                    <SelectItem key={genre} value={genre}>
-                                        {genre}
-                                    </SelectItem>
+                                    <SelectItem key={genre} value={genre}>{genre}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
 
                         <Select value={ratingFilter} onValueChange={setRatingFilter}>
-                            <SelectTrigger style={{  borderColor: 'var(--card-border)' }}>
+                            <SelectTrigger style={{ borderColor: 'var(--card-border)' }} className="w-[140px]">
                                 <SelectValue placeholder="IMDB Rating" />
                             </SelectTrigger>
-                            <SelectContent style={{  borderColor: 'var(--card-border)' }}>
+                            <SelectContent style={{ borderColor: 'var(--card-border)' }}>
                                 <SelectItem value="all">All Ratings</SelectItem>
                                 <SelectItem value="9">9+ ⭐</SelectItem>
                                 <SelectItem value="8">8+ ⭐</SelectItem>
@@ -167,10 +169,10 @@ export default function Watched() {
                         </Select>
 
                         <Select value={userRatingFilter} onValueChange={setUserRatingFilter}>
-                            <SelectTrigger style={{  borderColor: 'var(--card-border)' }}>
+                            <SelectTrigger style={{ borderColor: 'var(--card-border)' }} className="w-[130px]">
                                 <SelectValue placeholder="My Rating" />
                             </SelectTrigger>
-                            <SelectContent style={{  borderColor: 'var(--card-border)' }}>
+                            <SelectContent style={{ borderColor: 'var(--card-border)' }}>
                                 <SelectItem value="all">All My Ratings</SelectItem>
                                 <SelectItem value="9">9+ ⭐</SelectItem>
                                 <SelectItem value="8">8+ ⭐</SelectItem>
@@ -179,7 +181,8 @@ export default function Watched() {
                                 <SelectItem value="5">5+ ⭐</SelectItem>
                             </SelectContent>
                         </Select>
-                         <Button
+
+                        <Button
                             onClick={handleFilter}
                             className="text-black hover:opacity-90"
                             style={{ background: 'var(--gold)' }}
@@ -187,22 +190,23 @@ export default function Watched() {
                             <Search className="h-4 w-4 mr-2" />
                             Apply Filters
                         </Button>
+
                         <Button
                             onClick={handleClearFilters}
                             variant="outline"
                             style={{ borderColor: 'var(--card-border)' }}
-                            className='bg-red-700'
+                            className="bg-red-700"
                         >
-                            
                             Clear
                         </Button>
+
                     </div>
                 </div>
 
                 {movies.length === 0 ? (
                     <div className="flex-1 flex items-center justify-center">
                         <div className="text-center">
-                            <div className="text-6xl mb-4 "><PopcornIcon className='mx-auto text-red-600' size={50}  /></div>
+                            <div className="text-6xl mb-4 "><PopcornIcon className='mx-auto text-red-600' size={50} /></div>
                             <h2 className="text-2xl font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>No watched movies yet</h2>
                             <p style={{ color: 'var(--text-secondary)' }}>Start watching movies from your list</p>
                         </div>
@@ -215,7 +219,9 @@ export default function Watched() {
                                 movie={movie}
                                 onClick={handleCardClick}
                                 onDelete={handleDelete}
+                                onRecommend={handleRecommend}
                                 showActions={true}
+                                showRecommend={true}
                             />
                         ))}
                     </div>
@@ -229,8 +235,13 @@ export default function Watched() {
                 onDelete={handleDelete}
                 showActions={true}
             />
+            <RecommendModal
+                open={recommendModalOpen}
+                onClose={() => setRecommendModalOpen(false)}
+                movie={selectedMovie}
+            />
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                <AlertDialogContent style={{  borderColor: 'var(--card-border)' }}>
+                <AlertDialogContent style={{ borderColor: 'var(--card-border)' }}>
                     <AlertDialogHeader>
                         <AlertDialogTitle style={{ color: 'var(--text-primary)' }}>Delete Movie</AlertDialogTitle>
                         <AlertDialogDescription style={{ color: 'var(--text-secondary)' }}>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useForm, router } from '@inertiajs/react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { router } from '@inertiajs/react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Star } from 'lucide-react';
 
@@ -20,21 +20,24 @@ interface WatchedModalProps {
 export function WatchedModal({ open, onClose, movie }: WatchedModalProps) {
     const [rating, setRating] = useState(0);
     const [hoveredRating, setHoveredRating] = useState(0);
-
-    const form = useForm({
-        user_rating: 0,
-    });
+    const [submitting, setSubmitting] = useState(false);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!movie || rating === 0) return;
+        if (!movie || rating === 0 || submitting) return;
 
-        form.setData('user_rating', rating);
-        form.post(`/movies/${movie.id}/mark-watched`, {
+        setSubmitting(true);
+        
+        router.post(`/movies/${movie.id}/mark-watched`, {
+            user_rating: rating,
+        }, {
             onSuccess: () => {
-                onClose();
+                setSubmitting(false);
                 setRating(0);
-                router.reload({ only: ['movies'] });
+                onClose();
+            },
+            onError: () => {
+                setSubmitting(false);
             },
         });
     };
@@ -46,6 +49,9 @@ export function WatchedModal({ open, onClose, movie }: WatchedModalProps) {
             <DialogContent className="bg-neutral-900 border-neutral-800 text-white">
                 <DialogHeader>
                     <DialogTitle className="text-2xl">Mark as Watched</DialogTitle>
+                    <DialogDescription className="text-neutral-400">
+                        Rate this movie from 1 to 10 stars
+                    </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-6">
@@ -103,10 +109,10 @@ export function WatchedModal({ open, onClose, movie }: WatchedModalProps) {
                     </Button>
                     <Button
                         onClick={handleSubmit}
-                        disabled={rating === 0 || form.processing}
+                        disabled={rating === 0 || submitting}
                         className="bg-[#F5C518] text-black hover:bg-[#F5C518]/90"
                     >
-                        Confirm
+                        {submitting ? 'Saving...' : 'Confirm'}
                     </Button>
                 </DialogFooter>
             </DialogContent>

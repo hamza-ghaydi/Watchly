@@ -4,7 +4,14 @@ use App\Http\Controllers\Admin\MovieController as AdminMovieController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FeedController;
+use App\Http\Controllers\FollowController;
 use App\Http\Controllers\MovieController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ReactionController;
+use App\Http\Controllers\RecommendationController;
+use App\Http\Controllers\UserController as PublicUserController;
+use App\Http\Controllers\WatchTogetherController;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 
@@ -22,6 +29,40 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('movies/import', [MovieController::class, 'import'])->name('movies.import');
     Route::post('movies/{movie}/mark-watched', [MovieController::class, 'markWatched'])->name('movies.mark-watched');
     Route::delete('movies/{movie}', [MovieController::class, 'destroy'])->name('movies.destroy');
+    Route::post('movies/from-recommendation', [MovieController::class, 'addFromRecommendation'])->name('movies.from-recommendation');
+
+    // Recommendations
+    Route::get('recommendations', [RecommendationController::class, 'index'])->name('recommendations.index');
+    Route::post('recommendations', [RecommendationController::class, 'store'])->name('recommendations.store');
+    Route::delete('recommendations/{recommendation}', [RecommendationController::class, 'destroy'])->name('recommendations.destroy');
+
+    // Reactions
+    Route::post('reactions/toggle', [ReactionController::class, 'toggle'])->name('reactions.toggle');
+
+    // Watch Together
+    Route::get('watch-together', [WatchTogetherController::class, 'index'])->name('watch-together.index');
+    Route::post('watch-together', [WatchTogetherController::class, 'store'])->name('watch-together.store');
+    Route::post('watch-together/join', [WatchTogetherController::class, 'join'])->name('watch-together.join');
+    Route::get('watch-together/{room}', [WatchTogetherController::class, 'show'])->name('watch-together.show');
+    Route::post('watch-together/{room}/add-movie', [WatchTogetherController::class, 'addMovie'])->name('watch-together.add-movie');
+    Route::post('watch-together/{room}/vote', [WatchTogetherController::class, 'vote'])->name('watch-together.vote');
+    Route::post('watch-together/{room}/mark-watched', [WatchTogetherController::class, 'markWatched'])->name('watch-together.mark-watched');
+    Route::post('watch-together/{room}/leave', [WatchTogetherController::class, 'leave'])->name('watch-together.leave');
+
+    // Follow
+    Route::post('users/{user}/follow', [FollowController::class, 'toggle'])->name('users.follow');
+
+    // Feed
+    Route::get('feed', [FeedController::class, 'index'])->name('feed.index');
+
+    // Users
+    Route::get('users', [PublicUserController::class, 'index'])->name('users.index');
+    Route::get('users/{username}', [PublicUserController::class, 'show'])->name('users.show');
+
+    // Notifications
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.mark-all-read');
+    Route::post('notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
 
     // Admin routes
     Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {

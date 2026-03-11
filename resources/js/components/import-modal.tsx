@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useForm } from '@inertiajs/react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useForm, router } from '@inertiajs/react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +10,8 @@ import axios from 'axios';
 interface ImportModalProps {
     open: boolean;
     onClose: () => void;
+    importUrl?: string; // Optional custom import URL
+    importData?: (imdbId: string) => any; // Optional custom data transformer
 }
 
 interface SearchResult {
@@ -20,19 +22,15 @@ interface SearchResult {
     Poster: string;
 }
 
-export function ImportModal({ open, onClose }: ImportModalProps) {
+export function ImportModal({ open, onClose, importUrl, importData }: ImportModalProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
     const [searching, setSearching] = useState(false);
     const [searchError, setSearchError] = useState('');
+    const [importing, setImporting] = useState(false);
 
     const urlForm = useForm({
         type: 'url',
-        query: '',
-    });
-
-    const manualForm = useForm({
-        type: 'manual',
         query: '',
     });
 
@@ -59,12 +57,27 @@ export function ImportModal({ open, onClose }: ImportModalProps) {
     };
 
     const handleSelectMovie = (imdbId: string) => {
-        manualForm.setData('query', imdbId);
-        manualForm.post('/movies/import', {
+        if (importing) return; // Prevent double-click
+        
+        setImporting(true);
+        
+        const url = importUrl || '/movies/import';
+        const data = importData ? importData(imdbId) : {
+            type: 'manual',
+            query: imdbId,
+        };
+        
+        router.post(url, data, {
             onSuccess: () => {
+                setImporting(false);
                 onClose();
                 setSearchQuery('');
                 setSearchResults([]);
+            },
+            onError: (errors) => {
+                setImporting(false);
+                console.error('Import error:', errors);
+                setSearchError(errors.query || errors.imdb_id || 'Failed to import movie');
             },
         });
     };
@@ -84,6 +97,9 @@ export function ImportModal({ open, onClose }: ImportModalProps) {
             <DialogContent className="bg-neutral-900 border-neutral-800 text-white max-w-2xl max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="text-2xl">Import Movie/Series</DialogTitle>
+                    <DialogDescription className="text-neutral-400">
+                        Search for a movie or series by title, or import directly using an IMDB URL
+                    </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-6">
@@ -113,15 +129,13 @@ export function ImportModal({ open, onClose }: ImportModalProps) {
                             <div className="text-red-400 text-sm">{searchError}</div>
                         )}
 
-                        {manualForm.errors.query && (
-                            <div className="text-red-400 text-sm">{manualForm.errors.query}</div>
-                        )}
-
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
                             {searchResults.map((result) => (
                                 <div
                                     key={result.imdbID}
-                                    className="bg-neutral-800 rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-[#F5C518] transition-all"
+                                    className={`bg-neutral-800 rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-[#F5C518] transition-all ${
+                                        importing ? 'opacity-50 pointer-events-none' : ''
+                                    }`}
                                     onClick={() => handleSelectMovie(result.imdbID)}
                                 >
                                     <div className="aspect-[2/3] bg-neutral-700">
@@ -130,6 +144,11 @@ export function ImportModal({ open, onClose }: ImportModalProps) {
                                                 src={result.Poster}
                                                 alt={result.Title}
                                                 className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                    // Fallback if image fails to load
+                                                    e.currentTarget.style.display = 'none';
+                                                    e.currentTarget.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center text-4xl">🎬</div>';
+                                                }}
                                             />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-4xl">

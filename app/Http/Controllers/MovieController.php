@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exceptions\OmdbException;
 use App\Models\Movie;
+use App\Services\ActivityFeedService;
 use App\Services\OmdbService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -124,6 +125,9 @@ class MovieController extends Controller
                 'runtime' => $movie->runtime,
                 'user_rating' => $movie->pivot->user_rating,
                 'watched_at' => $movie->pivot->watched_at,
+                'user_already_recommended' => \App\Models\Recommendation::where('user_id', auth()->id())
+                    ->where('movie_id', $movie->id)
+                    ->exists(),
             ]);
 
         // Get unique genres for filter
@@ -215,6 +219,9 @@ class MovieController extends Controller
                 'status' => 'to_watch',
             ]);
 
+            // Record activity
+            ActivityFeedService::record(auth()->id(), 'added', $movie->id, []);
+
             return back()->with('success', 'Movie added to your list!');
         } catch (OmdbException $e) {
             return back()->withErrors(['query' => $e->getMessage()]);
@@ -240,6 +247,11 @@ class MovieController extends Controller
             'watched_at' => now(),
         ]);
 
+        // Record activity
+        ActivityFeedService::record(auth()->id(), 'watched', $movie->id, [
+            'rating' => $request->user_rating,
+        ]);
+
         return back()->with('success', 'Movie marked as watched!');
     }
 
@@ -261,5 +273,28 @@ class MovieController extends Controller
         }
 
         return back()->with('success', 'Movie removed from your list!');
+    }
+
+    public function addFromRecommendation(Request $request)
+    {
+        $request->validate([
+            'movie_id' => 'required|exists:movies,id',
+        ]);
+
+        $movie = Movie::findOrFail($request->movie_id);
+
+        // Check if already in list
+        if (auth()->user()->movies()->where('movies.id', $movie->id)->exists()) {
+            return back()->withErrors(['movie_id' => 'Already in your list']);
+        }
+
+        auth()->user()->movies()->attach($movie->id, [
+            'status' => 'to_watch',
+        ]);
+
+        // Record activity
+        ActivityFeedService::record(auth()->id(), 'added', $movie->id, []);
+
+        return back()->with('success', 'Added to your watchlist');
     }
 }
