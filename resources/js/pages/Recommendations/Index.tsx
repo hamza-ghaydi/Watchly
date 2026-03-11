@@ -1,5 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
@@ -30,7 +30,7 @@ interface Recommendation {
     others_names: string[];
     latest_note: string | null;
     total_recommenders: number;
-    reaction_counts: { Nice: number; Meh: number; Bad: number; };
+    reaction_counts: { fire: number; heart: number; mind_blown: number; };
     user_already_recommended: boolean;
     user_reaction: string | null;
     recommendation_id: number;
@@ -46,8 +46,15 @@ export default function Index() {
 
     const [localRecs, setLocalRecs] = useState(recommendations.data);
 
+    // Update local state when recommendations change from server
+    useEffect(() => {
+        setLocalRecs(recommendations.data);
+    }, [recommendations.data]);
+
     const handleSort = (newSort: string) => {
-        router.get('/recommendations', { sort: newSort }, { preserveScroll: true, preserveState: true });
+        router.get('/recommendations', { sort: newSort }, { 
+            preserveScroll: true,
+        });
     };
 
     const handleReaction = async (recIndex: number, type: string, recommendationId: number) => {
@@ -58,14 +65,25 @@ export default function Index() {
         // Optimistic update
         const newRecs = [...localRecs];
         if (prevReaction === type) {
+            // Toggle off
             newRecs[recIndex].user_reaction = null;
-            newRecs[recIndex].reaction_counts[type as keyof typeof prevCounts]--;
+            newRecs[recIndex].reaction_counts = {
+                ...newRecs[recIndex].reaction_counts,
+                [type]: Math.max(0, newRecs[recIndex].reaction_counts[type as keyof typeof prevCounts] - 1)
+            };
         } else {
+            // Change or add reaction
             if (prevReaction) {
-                newRecs[recIndex].reaction_counts[prevReaction as keyof typeof prevCounts]--;
+                newRecs[recIndex].reaction_counts = {
+                    ...newRecs[recIndex].reaction_counts,
+                    [prevReaction]: Math.max(0, newRecs[recIndex].reaction_counts[prevReaction as keyof typeof prevCounts] - 1)
+                };
             }
             newRecs[recIndex].user_reaction = type;
-            newRecs[recIndex].reaction_counts[type as keyof typeof prevCounts]++;
+            newRecs[recIndex].reaction_counts = {
+                ...newRecs[recIndex].reaction_counts,
+                [type]: newRecs[recIndex].reaction_counts[type as keyof typeof prevCounts] + 1
+            };
         }
         setLocalRecs(newRecs);
 
@@ -74,6 +92,7 @@ export default function Index() {
                 recommendation_id: recommendationId,
                 type,
             });
+            // Update with server response
             newRecs[recIndex].reaction_counts = response.data.reaction_counts;
             newRecs[recIndex].user_reaction = response.data.user_reaction;
             setLocalRecs([...newRecs]);

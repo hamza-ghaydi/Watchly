@@ -30,15 +30,44 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
-
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        $user = $request->user();
+        
+        // Update name and email first
+        $user->name = $request->input('name');
+        $user->email = $request->input('email');
+        
+        // Update bio - handle it explicitly
+        $user->bio = $request->input('bio', '');
+        
+        // Handle avatar upload
+        if ($request->hasFile('avatar')) {
+            // Delete old avatar if exists
+            if ($user->avatar && file_exists(public_path($user->avatar))) {
+                unlink(public_path($user->avatar));
+            }
+            
+            $avatar = $request->file('avatar');
+            $filename = 'avatar_' . $user->id . '_' . time() . '.' . $avatar->getClientOriginalExtension();
+            $avatar->move(public_path('avatars'), $filename);
+            $user->avatar = '/avatars/' . $filename;
         }
 
-        $request->user()->save();
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
+        }
 
-        return to_route('profile.edit');
+        // Save all changes at once
+        $saved = $user->save();
+        
+        \Log::info('Profile save result', [
+            'saved' => $saved,
+            'user_id' => $user->id,
+            'bio_in_model' => $user->bio,
+            'avatar_in_model' => $user->avatar,
+            'dirty_attributes' => $user->getDirty(),
+        ]);
+
+        return to_route('profile.edit')->with('status', 'profile-updated');
     }
 
     /**

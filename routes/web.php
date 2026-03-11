@@ -48,6 +48,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('watch-together/{room}/vote', [WatchTogetherController::class, 'vote'])->name('watch-together.vote');
     Route::post('watch-together/{room}/mark-watched', [WatchTogetherController::class, 'markWatched'])->name('watch-together.mark-watched');
     Route::post('watch-together/{room}/leave', [WatchTogetherController::class, 'leave'])->name('watch-together.leave');
+    Route::post('watch-together/{room}/invite', [WatchTogetherController::class, 'inviteUser'])->name('watch-together.invite');
 
     // Follow
     Route::post('users/{user}/follow', [FollowController::class, 'toggle'])->name('users.follow');

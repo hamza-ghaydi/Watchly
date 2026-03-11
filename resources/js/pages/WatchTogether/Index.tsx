@@ -31,10 +31,20 @@ export default function Index({ rooms }: { rooms: Room[] }) {
 
     const handleCreate = (e: React.FormEvent) => {
         e.preventDefault();
+        
+        if (!createForm.data.name.trim()) {
+            return;
+        }
+
         createForm.post('/watch-together', {
+            preserveScroll: false,
+            preserveState: false,
             onSuccess: () => {
                 setCreateModalOpen(false);
                 createForm.reset();
+            },
+            onError: (errors) => {
+                console.error('Failed to create room:', errors);
             },
         });
     };

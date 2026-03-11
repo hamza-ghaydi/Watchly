@@ -49,10 +49,12 @@ class FollowController extends Controller
         }
 
         $followersCount = $user->followers()->count();
+        $isMutual = $following && $user->isFollowing(auth()->id());
 
         return response()->json([
             'following' => $following,
             'followers_count' => $followersCount,
+            'is_mutual' => $isMutual,
         ]);
     }
 }

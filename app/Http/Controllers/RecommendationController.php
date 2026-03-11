@@ -25,7 +25,8 @@ class RecommendationController extends Controller
                 $query->orderBy('recommendations.created_at', 'desc');
                 break;
             case 'highest_rated':
-                $query->orderBy('movies.imdb_rating', 'desc');
+                // For highest_rated, we'll sort by fire reactions after grouping
+                $query->orderBy('recommendations.created_at', 'desc');
                 break;
             case 'most_recommended':
             default:
@@ -68,16 +69,21 @@ class RecommendationController extends Controller
 
             // Calculate reaction counts
             $allReactions = $movieRecs->flatMap(fn($r) => $r->reactions);
+            $fireCount = $allReactions->where('type', 'fire')->count();
+            $heartCount = $allReactions->where('type', 'heart')->count();
+            $mindBlownCount = $allReactions->where('type', 'mind_blown')->count();
+            
             $reactionCounts = [
-                'fire' => $allReactions->where('type', 'fire')->count(),
-                'heart' => $allReactions->where('type', 'heart')->count(),
-                'mind_blown' => $allReactions->where('type', 'mind_blown')->count(),
-                'skip' => $allReactions->where('type', 'skip')->count(),
+                'fire' => $fireCount,
+                'heart' => $heartCount,
+                'mind_blown' => $mindBlownCount,
             ];
 
             // Check user's recommendation and reaction
             $userRec = $movieRecs->where('user_id', auth()->id())->first();
-            $userReaction = $userRec ? $allReactions->where('user_id', auth()->id())->first()?->type : null;
+            
+            // Get user's reaction (check all reactions for this movie from current user)
+            $userReaction = $allReactions->where('user_id', auth()->id())->first()?->type;
 
             // Check if user can add to watchlist
             $inList = auth()->user()->movies()->where('movies.id', $movieId)->exists();
@@ -88,6 +94,9 @@ class RecommendationController extends Controller
 
             // Get first recommendation ID for reactions (users react to the movie, not a specific recommendation)
             $firstRecommendationId = $movieRecs->first()->id;
+            
+            // Get most recent recommendation date for sorting
+            $mostRecentDate = $movieRecs->max('created_at');
 
             $grouped[$movieId] = [
                 'movie' => [
@@ -111,16 +120,20 @@ class RecommendationController extends Controller
                 'recommendation_id' => $firstRecommendationId,
                 'can_add_to_watchlist' => !$inList,
                 'already_watched' => $alreadyWatched,
-                'sort_key' => $count, // For sorting by most_recommended
+                'sort_recommenders' => $count, // For sorting by most_recommended
+                'sort_fire_reactions' => $fireCount, // For sorting by highest_rated
+                'sort_recent_date' => $mostRecentDate, // For sorting by most_recent
             ];
         }
 
         // Sort the grouped results
         $groupedCollection = collect($grouped);
         if ($sort === 'most_recommended') {
-            $groupedCollection = $groupedCollection->sortByDesc('sort_key');
+            $groupedCollection = $groupedCollection->sortByDesc('sort_recommenders');
         } elseif ($sort === 'highest_rated') {
-            $groupedCollection = $groupedCollection->sortByDesc('movie.imdb_rating');
+            $groupedCollection = $groupedCollection->sortByDesc('sort_fire_reactions');
+        } elseif ($sort === 'most_recent') {
+            $groupedCollection = $groupedCollection->sortByDesc('sort_recent_date');
         }
 
         // Paginate manually

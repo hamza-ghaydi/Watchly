@@ -11,11 +11,8 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $query = User::where('role', 'user')
-            ->withCount([
-                'movies as total_movies' => fn($q) => $q->where('type', 'movie'),
-                'movies as total_series' => fn($q) => $q->where('type', 'series'),
-                'movies as total_watched' => fn($q) => $q->wherePivot('status', 'watched'),
-            ]);
+            ->where('id', '!=', auth()->id()) // Exclude current user
+            ->withCount(['followers', 'following']);
 
         if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
@@ -28,13 +25,12 @@ class UserController extends Controller
                 'name' => $user->name,
                 'username' => $user->username,
                 'avatar' => $user->avatar,
+                'bio' => $user->bio,
                 'created_at' => $user->created_at,
-                'stats' => [
-                    'total_movies' => $user->total_movies,
-                    'total_series' => $user->total_series,
-                    'total_watched' => $user->total_watched,
-                ],
+                'followers_count' => $user->followers_count,
+                'following_count' => $user->following_count,
                 'is_following' => auth()->user()->isFollowing($user->id),
+                'is_mutual' => auth()->user()->isFollowing($user->id) && $user->isFollowing(auth()->id()),
             ]);
 
         return Inertia::render('Users/Index', [
@@ -110,12 +106,29 @@ class UserController extends Controller
                 ];
             });
 
+        // Get available rooms for invite (only if mutual follow)
+        $availableRooms = [];
+        if ($mutualFollow) {
+            $availableRooms = auth()->user()->watchTogetherRooms()
+                ->withCount('members')
+                ->get()
+                ->filter(fn($room) => $room->members_count < 2)
+                ->map(fn($room) => [
+                    'id' => $room->id,
+                    'name' => $room->name,
+                    'invite_code' => $room->invite_code,
+                    'members_count' => $room->members_count,
+                ])
+                ->values();
+        }
+
         return Inertia::render('Users/Show', [
             'profile_user' => [
                 'id' => $user->id,
                 'name' => $user->name,
                 'username' => $user->username,
                 'avatar' => $user->avatar,
+                'bio' => $user->bio,
                 'created_at' => $user->created_at,
             ],
             'stats' => $stats,
@@ -125,6 +138,7 @@ class UserController extends Controller
             'mutual_follow' => $mutualFollow,
             'recent_watched' => $recentWatched,
             'public_recommendations' => $publicRecommendations,
+            'available_rooms' => $availableRooms,
         ]);
     }
 }

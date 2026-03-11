@@ -24,10 +24,22 @@ class CreateNewUser implements CreatesNewUsers
             'password' => $this->passwordRules(),
         ])->validate();
 
+        // Generate a unique username from email
+        $baseUsername = strtolower(explode('@', $input['email'])[0]);
+        $username = $baseUsername;
+        $counter = 1;
+        
+        // Ensure username is unique
+        while (User::where('username', $username)->exists()) {
+            $username = $baseUsername . $counter;
+            $counter++;
+        }
+
         return User::create([
             'name' => $input['name'],
             'email' => $input['email'],
             'password' => $input['password'],
+            'username' => $username,
         ]);
     }
 }

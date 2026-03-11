@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Movie;
 use App\Models\Notification;
+use App\Models\User;
 use App\Models\WatchTogetherRoom;
 use App\Services\ActivityFeedService;
 use App\Services\OmdbService;
@@ -78,6 +79,14 @@ class WatchTogetherController extends Controller
             'role' => 'owner',
             'last_visited_at' => now(),
         ]);
+
+        // If this is an AJAX request, return JSON
+        if ($request->wantsJson() || $request->expectsJson()) {
+            return response()->json([
+                'room_id' => $room->id,
+                'invite_code' => $code,
+            ]);
+        }
 
         return redirect()->route('watch-together.show', $room)->with('success', 'Room created successfully!');
     }
@@ -423,5 +432,49 @@ class WatchTogetherController extends Controller
         }
 
         return redirect()->route('watch-together.index')->with('success', 'Left room successfully');
+    }
+
+    public function inviteUser(Request $request, WatchTogetherRoom $room)
+    {
+        // Authorize: must be member
+        if (!$room->members()->where('user_id', auth()->id())->exists()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+        ]);
+
+        $invitedUser = User::findOrFail($request->user_id);
+
+        // Check if already a member
+        if ($room->members()->where('user_id', $invitedUser->id)->exists()) {
+            return response()->json(['error' => 'User is already a member'], 422);
+        }
+
+        // Check room capacity
+        if ($room->members()->count() >= 2) {
+            return response()->json(['error' => 'Room is full'], 422);
+        }
+
+        // Add as member
+        $room->members()->attach($invitedUser->id, [
+            'role' => 'member',
+            'last_visited_at' => now(),
+        ]);
+
+        // Notify invited user
+        Notification::create([
+            'user_id' => $invitedUser->id,
+            'type' => 'watch_together_invited',
+            'message' => auth()->user()->name . ' invited you to join "' . $room->name . '"',
+            'url' => '/watch-together/' . $room->id,
+            'meta' => ['room_id' => $room->id, 'inviter_id' => auth()->id()],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'User invited successfully',
+        ]);
     }
 }

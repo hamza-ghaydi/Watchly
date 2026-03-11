@@ -17,13 +17,12 @@ interface User {
     name: string;
     username: string;
     avatar: string | null;
+    bio: string | null;
     created_at: string;
-    stats: {
-        total_movies: number;
-        total_series: number;
-        total_watched: number;
-    };
+    followers_count: number;
+    following_count: number;
     is_following: boolean;
+    is_mutual: boolean;
 }
 
 export default function Index({ users, search }: { users: { data: User[] }; search: string }) {
@@ -36,15 +35,41 @@ export default function Index({ users, search }: { users: { data: User[] }; sear
 
     const handleFollow = async (userId: number, index: number) => {
         const prevFollowing = localUsers[index].is_following;
+        const prevFollowersCount = localUsers[index].followers_count;
+        const prevMutual = localUsers[index].is_mutual;
+        
         const newUsers = [...localUsers];
         newUsers[index].is_following = !prevFollowing;
+        
+        // Update followers count
+        if (!prevFollowing) {
+            // Following: increment followers
+            newUsers[index].followers_count = prevFollowersCount + 1;
+            // Check if it becomes mutual (they already follow us)
+            // We can't know for sure without server data, so we'll update after response
+        } else {
+            // Unfollowing: decrement followers
+            newUsers[index].followers_count = Math.max(0, prevFollowersCount - 1);
+            // If it was mutual, it's no longer mutual
+            newUsers[index].is_mutual = false;
+        }
+        
         setLocalUsers(newUsers);
 
         try {
-            await axios.post(`/users/${userId}/follow`);
+            const response = await axios.post(`/users/${userId}/follow`);
+            // Update with server response if available
+            if (response.data) {
+                newUsers[index].followers_count = response.data.followers_count || newUsers[index].followers_count;
+                newUsers[index].is_mutual = response.data.is_mutual || false;
+                setLocalUsers([...newUsers]);
+            }
         } catch (error) {
+            // Revert on error
             newUsers[index].is_following = prevFollowing;
-            setLocalUsers(newUsers);
+            newUsers[index].followers_count = prevFollowersCount;
+            newUsers[index].is_mutual = prevMutual;
+            setLocalUsers([...newUsers]);
         }
     };
 
@@ -80,37 +105,56 @@ export default function Index({ users, search }: { users: { data: User[] }; sear
                             <div className="flex items-start justify-between mb-4">
                                 <div className="flex items-center gap-3">
                                     <div
-                                        className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold"
-                                        style={{ background: 'var(--gold)', color: '#0D1117' }}
+                                        className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold overflow-hidden"
+                                        style={{ background: user.avatar ? 'transparent' : 'var(--gold)', color: '#0D1117' }}
                                     >
-                                        {user.name.charAt(0).toUpperCase()}
+                                        {user.avatar ? (
+                                            <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            user.name.charAt(0).toUpperCase()
+                                        )}
                                     </div>
                                     <div>
-                                        <h3
-                                            className="font-bold cursor-pointer hover:underline"
-                                            style={{ color: 'var(--text-primary)' }}
-                                            onClick={() => router.get(`/users/${user.username}`)}
-                                        >
-                                            {user.name}
-                                        </h3>
+                                        <div className="flex items-center gap-2">
+                                            <h3
+                                                className="font-bold cursor-pointer hover:underline"
+                                                style={{ color: 'var(--text-primary)' }}
+                                                onClick={() => router.get(`/users/${user.username}`)}
+                                            >
+                                                {user.name}
+                                            </h3>
+                                            {user.is_mutual && (
+                                                <span
+                                                    className="px-1.5 py-0.5 text-xs font-bold rounded"
+                                                    style={{ background: 'var(--gold)', color: '#0D1117' }}
+                                                >
+                                                    Friend
+                                                </span>
+                                            )}
+                                        </div>
                                         <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                                             @{user.username}
                                         </p>
                                     </div>
                                 </div>
                             </div>
+                            {user.bio && (
+                                <p className="text-sm mb-4 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
+                                    {user.bio}
+                                </p>
+                            )}
                             <div className="flex gap-4 mb-4 text-sm" style={{ color: 'var(--text-secondary)' }}>
                                 <div>
                                     <span className="font-bold" style={{ color: 'var(--text-primary)' }}>
-                                        {user.stats.total_watched}
+                                        {user.followers_count}
                                     </span>{' '}
-                                    watched
+                                    followers
                                 </div>
                                 <div>
                                     <span className="font-bold" style={{ color: 'var(--text-primary)' }}>
-                                        {user.stats.total_movies + user.stats.total_series}
+                                        {user.following_count}
                                     </span>{' '}
-                                    total
+                                    following
                                 </div>
                             </div>
                             <Button
@@ -120,7 +164,7 @@ export default function Index({ users, search }: { users: { data: User[] }; sear
                                 variant={user.is_following ? 'outline' : 'default'}
                                 style={
                                     user.is_following
-                                        ? { borderColor: 'var(--card-border)' }
+                                        ? { borderColor: 'var(--card-border)', color: 'var(--text-primary)' }
                                         : { background: 'var(--gold)', color: '#0D1117' }
                                 }
                             >

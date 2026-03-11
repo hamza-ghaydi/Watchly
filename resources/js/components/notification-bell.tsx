@@ -4,6 +4,7 @@ import axios from 'axios';
 import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useNotificationContext } from '@/contexts/NotificationContext';
 
 interface Notification {
     id: number;
@@ -17,8 +18,13 @@ interface Notification {
 export function NotificationBell({ initialUnreadCount }: { initialUnreadCount: number }) {
     const [open, setOpen] = useState(false);
     const [notifications, setNotifications] = useState<Notification[]>([]);
-    const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
     const [loading, setLoading] = useState(false);
+    const { unreadCount, setUnreadCount, refreshTrigger } = useNotificationContext();
+
+    // Initialize unread count from props
+    useEffect(() => {
+        setUnreadCount(initialUnreadCount);
+    }, [initialUnreadCount, setUnreadCount]);
 
     const fetchNotifications = async () => {
         if (loading) return;
@@ -34,17 +40,18 @@ export function NotificationBell({ initialUnreadCount }: { initialUnreadCount: n
         }
     };
 
+    // Fetch notifications when opened or when refresh is triggered
     useEffect(() => {
-        if (open && notifications.length === 0) {
+        if (open || refreshTrigger > 0) {
             fetchNotifications();
         }
-    }, [open]);
+    }, [open, refreshTrigger]);
 
     const handleNotificationClick = async (notification: Notification) => {
         if (!notification.read_at) {
             try {
                 await axios.post(`/notifications/${notification.id}/read`);
-                setUnreadCount(Math.max(0, unreadCount - 1));
+                setUnreadCount(prev => Math.max(0, prev - 1));
                 setNotifications(notifications.map(n => 
                     n.id === notification.id ? { ...n, read_at: new Date().toISOString() } : n
                 ));

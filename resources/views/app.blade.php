@@ -32,9 +32,16 @@
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
-        <link rel="icon" href="{{ asset('images/Watchly.png') }}" sizes="any">
-        <link rel="icon" href="{{ asset('images/Watchly.png') }}" type="image/svg+xml">
-        <link rel="apple-touch-icon" href="{{ asset('images/Watchly.png') }}">
+        {{-- PWA Manifest --}}
+        <link rel="manifest" href="{{ asset('manifest.json') }}">
+        <meta name="theme-color" content="#d4af37">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <meta name="apple-mobile-web-app-title" content="Watchly">
+
+        <link rel="icon" href="{{ asset('images/icon.png') }}" sizes="any">
+        <link rel="icon" href="{{ asset('images/icon.png') }}" type="image/svg+xml">
+        <link rel="apple-touch-icon" href="{{ asset('images/icon.png') }}">
 
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
@@ -45,5 +52,20 @@
     </head>
     <body class="font-sans antialiased">
         @inertia
+
+        {{-- Service Worker Registration --}}
+        <script>
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('/sw.js')
+                        .then(registration => {
+                            console.log('Service Worker registered:');
+                        })
+                        .catch(error => {
+                            console.log('Service Worker registration failed:');
+                        });
+                });
+            }
+        </script>
     </body>
 </html>
