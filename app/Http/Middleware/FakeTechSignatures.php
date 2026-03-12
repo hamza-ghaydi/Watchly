@@ -15,6 +15,11 @@ class FakeTechSignatures
     {
         $response = $next($request);
 
+        // Don't modify Inertia requests - they need proper Inertia responses
+        if ($request->header('X-Inertia')) {
+            return $response;
+        }
+
         // Remove real signatures
         $response->headers->remove('X-Powered-By');
         $response->headers->remove('Server');
@@ -30,11 +35,7 @@ class FakeTechSignatures
         // Add fake MongoDB signature (via custom header)
         $response->headers->set('X-Database', 'MongoDB/6.0');
         
-        // Remove Laravel/Inertia signatures
-        $response->headers->remove('X-Inertia');
-        $response->headers->remove('X-Inertia-Version');
-        
-        // Add fake generator meta tag for WordPress
+        // Add fake generator meta tag for WordPress (only for HTML responses)
         if ($response->headers->get('Content-Type') && str_contains($response->headers->get('Content-Type'), 'text/html')) {
             $content = $response->getContent();
             if ($content && str_contains($content, '</head>')) {
