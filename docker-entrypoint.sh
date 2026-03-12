@@ -1,32 +1,36 @@
 #!/bin/bash
 set -e
 
-# Clear cached config so env vars are always fresh
+# Only clear config cache (no DB needed for this)
 php artisan config:clear
-php artisan cache:clear
 
-echo "Creating database if not exists..."
-php artisan db:create 2>/dev/null || true
-
-# Wait loop using raw PHP PDO — no mysql binary needed
-echo "Waiting for database..."
+echo "Waiting for MySQL and creating database..."
 until php -r "
 try {
-    \$pdo = new PDO(
-        'mysql:host={$DB_HOST};port={$DB_PORT}',
-        '{$DB_USERNAME}',
-        '{$DB_PASSWORD}'
-    );
-    \$pdo->exec('CREATE DATABASE IF NOT EXISTS \`{$DB_DATABASE}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
-    echo 'Connected and database ensured.' . PHP_EOL;
+    \$host = getenv('DB_HOST');
+    \$port = getenv('DB_PORT') ?: '3306';
+    \$user = getenv('DB_USERNAME');
+    \$pass = getenv('DB_PASSWORD');
+    \$db   = getenv('DB_DATABASE');
+
+    \$pdo = new PDO(\"mysql:host=\$host;port=\$port\", \$user, \$pass, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_TIMEOUT => 3,
+    ]);
+    \$pdo->exec(\"CREATE DATABASE IF NOT EXISTS \\\`\$db\\\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci\");
+    echo \"Database ready.\n\";
     exit(0);
 } catch (Exception \$e) {
+    echo \$e->getMessage() . \"\n\";
     exit(1);
 }
-" 2>/dev/null; do
-    echo "Database unavailable - retrying in 2s..."
-    sleep 2
+"; do
+    echo "Database unavailable - retrying in 3s..."
+    sleep 3
 done
+
+# Now safe to clear all caches (DB exists)
+php artisan cache:clear
 
 echo "Running migrations..."
 php artisan migrate --force
