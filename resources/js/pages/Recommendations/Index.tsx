@@ -77,6 +77,7 @@ export default function Index() {
     const handleSort = (newSort: string) => {
         router.get('/recommendations', { sort: newSort }, { 
             preserveScroll: true,
+            preserveState: false,
         });
     };
 

@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import AppLayout from '@/layouts/app-layout';
 import { Input } from '@/components/ui/input';
@@ -29,8 +29,16 @@ export default function Index({ users, search }: { users: { data: User[] }; sear
     const [searchQuery, setSearchQuery] = useState(search || '');
     const [localUsers, setLocalUsers] = useState(users.data);
 
+    // Update local users when users prop changes (after search)
+    React.useEffect(() => {
+        setLocalUsers(users.data);
+    }, [users.data]);
+
     const handleSearch = () => {
-        router.get('/users', { search: searchQuery }, { preserveState: true });
+        router.get('/users', { search: searchQuery }, { 
+            preserveState: true,
+            preserveScroll: true,
+        });
     };
 
     const handleFollow = async (userId: number, index: number) => {
