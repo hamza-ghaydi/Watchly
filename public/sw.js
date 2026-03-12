@@ -1,5 +1,5 @@
 // Service Worker for Watchly PWA
-const CACHE_NAME = 'watchly-v2';
+const CACHE_NAME = 'watchly-v3';
 const urlsToCache = [
     '/images/icon.png',
     '/images/logowatchly.png',
@@ -14,22 +14,41 @@ self.addEventListener('install', (event) => {
                 return cache.addAll(urlsToCache);
             })
     );
+    self.skipWaiting();
 });
 
 // Fetch event - serve from cache when offline
 self.addEventListener('fetch', (event) => {
-    // Don't intercept navigation requests (page loads, redirects)
-    if (event.request.mode === 'navigate') {
+    const { request } = event;
+    const url = new URL(request.url);
+
+    // CRITICAL: Never intercept these — let them go to the server always
+    const isInertiaRequest = request.headers.get('X-Inertia');
+    const isAPIRequest = url.pathname.startsWith('/api/');
+    const isAuthRoute = [
+        '/dashboard',
+        '/movies',
+        '/feed',
+        '/recommendations',
+        '/watch-together',
+        '/notifications',
+        '/users',
+        '/admin',
+        '/settings',
+    ].some((p) => url.pathname.startsWith(p));
+    const isPOST = request.method !== 'GET';
+
+    if (isInertiaRequest || isAPIRequest || isAuthRoute || isPOST) {
+        // Always fetch from network — never cache authenticated pages
         return;
     }
 
-    // Don't intercept POST requests or other mutations
-    if (event.request.method !== 'GET') {
+    // Don't intercept navigation requests (page loads, redirects)
+    if (request.mode === 'navigate') {
         return;
     }
 
     // Only cache static assets
-    const url = new URL(event.request.url);
     const isStaticAsset = url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|woff|woff2|ttf|ico|mp3)$/);
     
     if (!isStaticAsset) {
@@ -37,13 +56,13 @@ self.addEventListener('fetch', (event) => {
     }
 
     event.respondWith(
-        caches.match(event.request)
+        caches.match(request)
             .then((response) => {
                 // Cache hit - return response
                 if (response) {
                     return response;
                 }
-                return fetch(event.request);
+                return fetch(request);
             })
     );
 });

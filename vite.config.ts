@@ -24,4 +24,24 @@ export default defineConfig({
     esbuild: {
         jsx: 'automatic',
     },
+    build: {
+        chunkSizeWarningLimit: 800,
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    'vendor-react': ['react', 'react-dom'],
+                    'vendor-inertia': ['@inertiajs/react'],
+                    'vendor-icons': ['lucide-react'],
+                    'vendor-ui': [
+                        '@radix-ui/react-dialog',
+                        '@radix-ui/react-tooltip',
+                        '@radix-ui/react-popover',
+                        '@radix-ui/react-tabs',
+                        '@radix-ui/react-slot',
+                        '@radix-ui/react-separator',
+                    ],
+                },
+            },
+        },
+    },
 });

@@ -1,0 +1,79 @@
+================================================================================
+MOBILE WHITE SCREEN FIX - DEPLOYMENT CHECKLIST
+================================================================================
+
+STEP 1: CLEAR ALL CACHES
+================================================================================
+php artisan config:clear
+php artisan cache:clear
+php artisan route:clear
+php artisan view:clear
+php artisan optimize:clear
+
+STEP 2: UPDATE ENVIRONMENT VARIABLES (Production .env)
+================================================================================
+SESSION_SAME_SITE=lax
+SESSION_SECURE_COOKIE=true
+
+STEP 3: REBUILD ASSETS
+================================================================================
+npm run build
+
+STEP 4: OPTIMIZE LARAVEL
+================================================================================
+php artisan optimize
+
+STEP 5: DEPLOY
+================================================================================
+git add .
+git commit -m "Fix mobile white screen issue"
+git push origin main
+
+STEP 6: TEST ON MOBILE
+================================================================================
+1. Clear mobile browser cache completely
+2. Open site in mobile Safari/Chrome
+3. Login
+4. Navigate to dashboard
+5. ✅ Should see content (not white screen)
+
+STEP 7: CHECK LOGS IF STILL WHITE SCREEN
+================================================================================
+tail -f storage/logs/laravel.log
+
+Look for "Mobile client error" entries - this shows the exact JS error
+
+================================================================================
+WHAT WAS FIXED
+================================================================================
+
+1. ✅ Added Error Boundary - Shows errors instead of white screen
+2. ✅ Added Client Error Logging - Logs mobile errors to Laravel logs
+3. ✅ Fixed App.tsx - Lazy loading, error handling, removed StrictMode
+4. ✅ Fixed Session Config - Changed same_site to 'lax' for mobile
+5. ✅ Fixed app.blade.php - Added @routes before @vite, CSRF token
+6. ✅ Added Chunk Splitting - Reduces bundle size for mobile
+7. ✅ Fixed Service Worker - Never caches authenticated routes
+
+================================================================================
+EXPECTED RESULT
+================================================================================
+
+Mobile browser should now:
+- Show login page ✓
+- Successfully login ✓
+- Show dashboard (not white screen) ✓
+- Navigate between pages ✓
+- Show error message if crash (not white screen) ✓
+
+================================================================================
+IF STILL NOT WORKING
+================================================================================
+
+1. Check storage/logs/laravel.log for "Mobile client error"
+2. Use Chrome Remote Debugging: chrome://inspect
+3. Check if @routes is before @vite in app.blade.php
+4. Verify SESSION_SAME_SITE=lax in production .env
+5. Hard refresh mobile browser (hold reload button)
+
+================================================================================
