@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Movie;
 use App\Models\Recommendation;
+use App\Models\Comment;
 use App\Services\ActivityFeedService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -95,6 +96,10 @@ class RecommendationController extends Controller
             // Get first recommendation ID for reactions (users react to the movie, not a specific recommendation)
             $firstRecommendationId = $movieRecs->first()->id;
             
+            // Get total comments count for this movie (manually count all comments including replies)
+            $recommendationIds = $movieRecs->pluck('id');
+            $totalComments = Comment::whereIn('recommendation_id', $recommendationIds)->count();
+            
             // Get most recent recommendation date for sorting
             $mostRecentDate = $movieRecs->max('created_at');
 
@@ -118,6 +123,7 @@ class RecommendationController extends Controller
                 'user_already_recommended' => $userRec !== null,
                 'user_reaction' => $userReaction,
                 'recommendation_id' => $firstRecommendationId,
+                'comments_count' => $totalComments,
                 'can_add_to_watchlist' => !$inList,
                 'already_watched' => $alreadyWatched,
                 'sort_recommenders' => $count, // For sorting by most_recommended
@@ -211,5 +217,90 @@ class RecommendationController extends Controller
         $recommendation->delete();
 
         return back()->with('success', 'Recommendation removed successfully!');
+    }
+
+    public function getComments(Recommendation $recommendation)
+    {
+        $comments = $recommendation->comments()
+            ->whereNull('parent_id') // Only get top-level comments
+            ->with(['user:id,name,username,avatar', 'replies.user:id,name,username,avatar'])
+            ->orderBy('created_at', 'asc')
+            ->get()
+            ->map(function($comment) {
+                return [
+                    'id' => $comment->id,
+                    'body' => $comment->body,
+                    'created_at' => $comment->created_at->diffForHumans(),
+                    'user' => [
+                        'id' => $comment->user->id,
+                        'name' => $comment->user->name,
+                        'username' => $comment->user->username,
+                        'avatar' => $comment->user->avatar,
+                    ],
+                    'replies' => $comment->replies->map(fn($reply) => [
+                        'id' => $reply->id,
+                        'body' => $reply->body,
+                        'created_at' => $reply->created_at->diffForHumans(),
+                        'user' => [
+                            'id' => $reply->user->id,
+                            'name' => $reply->user->name,
+                            'username' => $reply->user->username,
+                            'avatar' => $reply->user->avatar,
+                        ],
+                    ]),
+                ];
+            });
+
+        return response()->json([
+            'comments' => $comments,
+            'recommendation' => [
+                'id' => $recommendation->id,
+                'movie' => [
+                    'title' => $recommendation->movie->title,
+                ],
+                'user' => [
+                    'name' => $recommendation->user->name,
+                ],
+            ],
+        ]);
+    }
+
+    public function storeComment(Request $request, Recommendation $recommendation)
+    {
+        $request->validate([
+            'body' => 'required|string|max:500',
+            'parent_id' => 'nullable|exists:comments,id',
+        ]);
+
+        // If parent_id is provided, verify it belongs to this recommendation
+        if ($request->parent_id) {
+            $parentComment = Comment::find($request->parent_id);
+            if (!$parentComment || $parentComment->recommendation_id !== $recommendation->id) {
+                return response()->json(['error' => 'Invalid parent comment'], 400);
+            }
+        }
+
+        $comment = $recommendation->comments()->create([
+            'user_id' => auth()->id(),
+            'body' => $request->body,
+            'parent_id' => $request->parent_id,
+        ]);
+
+        $comment->load('user:id,name,username,avatar');
+
+        return response()->json([
+            'comment' => [
+                'id' => $comment->id,
+                'body' => $comment->body,
+                'created_at' => $comment->created_at->diffForHumans(),
+                'user' => [
+                    'id' => $comment->user->id,
+                    'name' => $comment->user->name,
+                    'username' => $comment->user->username,
+                    'avatar' => $comment->user->avatar,
+                ],
+                'replies' => [],
+            ],
+        ]);
     }
 }

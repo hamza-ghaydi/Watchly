@@ -4,6 +4,16 @@ import axios from 'axios';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { ImportModal } from '@/components/import-modal';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Copy, ThumbsUp, ThumbsDown, Check, LogOut, Plus } from 'lucide-react';
 import type { BreadcrumbItem } from '@/types';
 
@@ -63,6 +73,7 @@ export default function Show({
     const [importModalOpen, setImportModalOpen] = useState(false);
     const [localToWatch, setLocalToWatch] = useState(to_watch);
     const [copiedCode, setCopiedCode] = useState(false);
+    const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
 
     const handleCopyCode = () => {
         if (room.invite_code) {
@@ -110,9 +121,7 @@ export default function Show({
     };
 
     const handleLeave = () => {
-        if (confirm('Are you sure you want to leave this room?')) {
-            router.post(`/watch-together/${room.id}/leave`);
-        }
+        router.post(`/watch-together/${room.id}/leave`);
     };
 
     // Get top 3 voted movies
@@ -147,7 +156,7 @@ export default function Show({
                 </div>
             </div>
             <Button
-                onClick={handleLeave}
+                onClick={() => setLeaveDialogOpen(true)}
                 variant="outline"
                 size="sm"
                 className="flex-shrink-0 gap-1.5"
@@ -430,6 +439,30 @@ export default function Show({
         importUrl={`/watch-together/${room.id}/add-movie`}
         importData={(imdbId) => ({ imdb_id: imdbId })}
     />
+
+    <AlertDialog open={leaveDialogOpen} onOpenChange={setLeaveDialogOpen}>
+        <AlertDialogContent style={{ background: 'var(--card-bg)', borderColor: 'var(--card-border)' }}>
+            <AlertDialogHeader>
+                <AlertDialogTitle style={{ color: 'var(--text-primary)' }}>
+                    Leave Room?
+                </AlertDialogTitle>
+                <AlertDialogDescription style={{ color: 'var(--text-secondary)' }}>
+                    Are you sure you want to leave "{room.name}"? You'll need a new invite code to rejoin.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel style={{ borderColor: 'var(--card-border)', color: 'var(--text-primary)' }}>
+                    Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction
+                    onClick={handleLeave}
+                    style={{ background: 'var(--gold)', color: '#0D1117' }}
+                >
+                    Leave Room
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
 </AppLayout>
     );
 }

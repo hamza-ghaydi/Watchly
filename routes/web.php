@@ -35,6 +35,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('recommendations', [RecommendationController::class, 'index'])->name('recommendations.index');
     Route::post('recommendations', [RecommendationController::class, 'store'])->name('recommendations.store');
     Route::delete('recommendations/{recommendation}', [RecommendationController::class, 'destroy'])->name('recommendations.destroy');
+    Route::get('recommendations/{recommendation}/comments', [RecommendationController::class, 'getComments'])->name('recommendations.comments');
+    Route::post('recommendations/{recommendation}/comments', [RecommendationController::class, 'storeComment'])->name('recommendations.comments.store');
 
     // Reactions
     Route::post('reactions/toggle', [ReactionController::class, 'toggle'])->name('reactions.toggle');

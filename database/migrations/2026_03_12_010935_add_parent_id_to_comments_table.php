@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->text('bio')->nullable()->after('avatar');
+        Schema::table('comments', function (Blueprint $table) {
+            $table->foreignId('parent_id')->nullable()->after('recommendation_id')->constrained('comments')->onDelete('cascade');
         });
     }
 
@@ -21,8 +21,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('bio');
+        Schema::table('comments', function (Blueprint $table) {
+            $table->dropForeign(['parent_id']);
+            $table->dropColumn('parent_id');
         });
     }
 };

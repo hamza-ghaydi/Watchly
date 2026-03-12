@@ -3,8 +3,10 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Flame, Heart, Zap, Moon, Meh, Smile, Frown } from 'lucide-react';
+import { Flame, Heart, Zap, Moon, Meh, Smile, Frown, MessageCircle, Send } from 'lucide-react';
 import type { BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -34,8 +36,22 @@ interface Recommendation {
     user_already_recommended: boolean;
     user_reaction: string | null;
     recommendation_id: number;
+    comments_count: number;
     can_add_to_watchlist: boolean;
     already_watched: boolean;
+}
+
+interface Comment {
+    id: number;
+    body: string;
+    created_at: string;
+    user: {
+        id: number;
+        name: string;
+        username: string;
+        avatar: string | null;
+    };
+    replies?: Comment[];
 }
 
 export default function Index() {
@@ -45,6 +61,13 @@ export default function Index() {
     }>().props;
 
     const [localRecs, setLocalRecs] = useState(recommendations.data);
+    const [commentModalOpen, setCommentModalOpen] = useState(false);
+    const [selectedRec, setSelectedRec] = useState<Recommendation | null>(null);
+    const [comments, setComments] = useState<Comment[]>([]);
+    const [loadingComments, setLoadingComments] = useState(false);
+    const [commentBody, setCommentBody] = useState('');
+    const [submittingComment, setSubmittingComment] = useState(false);
+    const [replyingTo, setReplyingTo] = useState<{ id: number; username: string } | null>(null);
 
     // Update local state when recommendations change from server
     useEffect(() => {
@@ -111,6 +134,83 @@ export default function Index() {
         setLocalRecs(newRecs);
 
         router.post('/movies/from-recommendation', { movie_id: movieId });
+    };
+
+    const handleOpenComments = async (rec: Recommendation, index: number) => {
+        setSelectedRec({ ...rec, index } as any);
+        setCommentModalOpen(true);
+        setLoadingComments(true);
+        setComments([]);
+        setCommentBody('');
+
+        try {
+            const response = await axios.get(`/recommendations/${rec.recommendation_id}/comments`);
+            setComments(response.data.comments);
+        } catch (error) {
+            console.error('Failed to load comments:', error);
+        } finally {
+            setLoadingComments(false);
+        }
+    };
+
+    const handlePostComment = async () => {
+        if (!selectedRec || !commentBody.trim()) return;
+
+        setSubmittingComment(true);
+        try {
+            const response = await axios.post(`/recommendations/${selectedRec.recommendation_id}/comments`, {
+                body: commentBody.trim(),
+                parent_id: replyingTo?.id || null,
+            });
+
+            if (replyingTo) {
+                // Add reply to the parent comment
+                const newComments = comments.map(comment => {
+                    if (comment.id === replyingTo.id) {
+                        return {
+                            ...comment,
+                            replies: [...(comment.replies || []), response.data.comment],
+                        };
+                    }
+                    return comment;
+                });
+                setComments(newComments);
+            } else {
+                // Add new top-level comment
+                setComments([...comments, response.data.comment]);
+            }
+
+            setCommentBody('');
+            setReplyingTo(null);
+
+            // Update comments count in local state
+            const newRecs = [...localRecs];
+            const recIndex = (selectedRec as any).index;
+            newRecs[recIndex].comments_count += 1;
+            setLocalRecs(newRecs);
+        } catch (error) {
+            console.error('Failed to post comment:', error);
+        } finally {
+            setSubmittingComment(false);
+        }
+    };
+
+    const handleReply = (commentId: number, username: string) => {
+        setReplyingTo({ id: commentId, username });
+        setCommentBody('');
+    };
+
+    const handleCancelReply = () => {
+        setReplyingTo(null);
+        setCommentBody('');
+    };
+
+    const handleCloseCommentModal = () => {
+        setCommentModalOpen(false);
+        setSelectedRec(null);
+        setComments([]);
+        setCommentBody('');
+        setReplyingTo(null);
     };
 
     return (
@@ -236,6 +336,17 @@ export default function Index() {
                                         </button>
                                     ))}
                                 </div>
+                                <button
+                                    onClick={() => handleOpenComments(rec, index)}
+                                    className="flex items-center justify-center gap-1 px-2 py-1 rounded text-xs mb-3 w-full"
+                                    style={{
+                                        border: '1px solid var(--card-border)',
+                                        color: 'var(--text-secondary)',
+                                    }}
+                                >
+                                    <MessageCircle className="h-3 w-3" />
+                                    {rec.comments_count || 0} {(rec.comments_count || 0) === 1 ? 'comment' : 'comments'}
+                                </button>
                                 {rec.can_add_to_watchlist && !rec.already_watched && (
                                     <Button
                                         size="sm"
@@ -261,6 +372,200 @@ export default function Index() {
                     ))}
                 </div>
             </div>
+
+            {/* Comment Modal */}
+            <Dialog open={commentModalOpen} onOpenChange={handleCloseCommentModal}>
+    <DialogContent
+        className="w-[90vw] max-w-lg max-h-[85vh] overflow-hidden flex flex-col rounded-xl"
+        style={{  borderColor: 'var(--card-border)' }}
+    >
+        {/* Header */}
+        <DialogHeader className="pb-3 border-b" style={{ borderColor: 'var(--card-border)' }}>
+            <div className="flex items-center gap-2">
+                <MessageCircle className="h-5 w-5" style={{ color: 'var(--gold)' }} />
+                <DialogTitle style={{ color: 'var(--text-primary)' }}>
+                    Comments
+                </DialogTitle>
+            </div>
+            <DialogDescription className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)' }}>
+                Share your thoughts about this recommendation
+            </DialogDescription>
+        </DialogHeader>
+
+        {/* Comments List */}
+        <div className="flex-1 overflow-y-auto py-3 space-y-3 min-h-0">
+            {loadingComments ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-2" style={{ color: 'var(--text-secondary)' }}>
+                    <div className="w-6 h-6 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--gold)', borderTopColor: 'transparent' }} />
+                    <span className="text-sm">Loading comments...</span>
+                </div>
+            ) : comments.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+                    <MessageCircle className="h-10 w-10 opacity-30" />
+                    <p className="text-sm font-medium">No comments yet</p>
+                    <p className="text-xs opacity-70">Be the first to share your thoughts!</p>
+                </div>
+            ) : (
+                comments.map((comment) => (
+                    <div key={comment.id} className="space-y-2">
+                        <div
+                            className="p-3 rounded-lg transition-opacity hover:opacity-90"
+                            style={{ border: '1px solid var(--card-border)', background: 'var(--background)' }}
+                        >
+                            <div className="flex items-start gap-2.5">
+                                <div className="flex-shrink-0">
+                                    {comment.user.avatar ? (
+                                        <img
+                                            src={comment.user.avatar}
+                                            alt={comment.user.name}
+                                            className="w-8 h-8 rounded-full object-cover ring-1"
+                                        />
+                                    ) : (
+                                        <div
+                                            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
+                                            style={{ background: 'var(--gold)', color: '#0D1117' }}
+                                        >
+                                            {comment.user.name.charAt(0).toUpperCase()}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                                        <span className="font-semibold text-sm leading-none" style={{ color: 'var(--gold)' }}>
+                                            {comment.user.name}
+                                        </span>
+                                        <span className="text-xs leading-none" style={{ color: 'var(--text-secondary)' }}>
+                                            @{comment.user.username}
+                                        </span>
+                                        <span className="text-xs leading-none ml-auto" style={{ color: 'var(--text-secondary)' }}>
+                                            {comment.created_at}
+                                        </span>
+                                    </div>
+                                    <p className="text-sm break-words leading-relaxed mb-2" style={{ color: 'var(--text-primary)' }}>
+                                        {comment.body}
+                                    </p>
+                                    <button
+                                        onClick={() => handleReply(comment.id, comment.user.username)}
+                                        className="text-xs font-medium hover:underline"
+                                        style={{ color: 'var(--gold)' }}
+                                    >
+                                        Reply
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Replies */}
+                        {comment.replies && comment.replies.length > 0 && (
+                            <div className="ml-8 space-y-2">
+                                {comment.replies.map((reply) => (
+                                    <div
+                                        key={reply.id}
+                                        className="p-3 rounded-lg transition-opacity hover:opacity-90"
+                                        style={{ border: '1px solid var(--card-border)', background: 'var(--background)' }}
+                                    >
+                                        <div className="flex items-start gap-2.5">
+                                            <div className="flex-shrink-0">
+                                                {reply.user.avatar ? (
+                                                    <img
+                                                        src={reply.user.avatar}
+                                                        alt={reply.user.name}
+                                                        className="w-7 h-7 rounded-full object-cover ring-1"
+                                                    />
+                                                ) : (
+                                                    <div
+                                                        className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
+                                                        style={{ background: 'var(--gold)', color: '#0D1117' }}
+                                                    >
+                                                        {reply.user.name.charAt(0).toUpperCase()}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                                                    <span className="font-semibold text-sm leading-none" style={{ color: 'var(--gold)' }}>
+                                                        {reply.user.name}
+                                                    </span>
+                                                    <span className="text-xs leading-none" style={{ color: 'var(--text-secondary)' }}>
+                                                        @{reply.user.username}
+                                                    </span>
+                                                    <span className="text-xs leading-none ml-auto" style={{ color: 'var(--text-secondary)' }}>
+                                                        {reply.created_at}
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm break-words leading-relaxed" style={{ color: 'var(--text-primary)' }}>
+                                                    {reply.body}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                ))
+            )}
+        </div>
+
+        {/* Comment Input */}
+        <div className="border-t pt-3 mt-auto" style={{ borderColor: 'var(--card-border)' }}>
+            {replyingTo && (
+                <div className="flex items-center justify-between mb-2 p-2 rounded" style={{ background: 'var(--background)', border: '1px solid var(--card-border)' }}>
+                    <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                        Replying to <span style={{ color: 'var(--gold)' }}>@{replyingTo.username}</span>
+                    </span>
+                    <button
+                        onClick={handleCancelReply}
+                        className="text-xs font-medium hover:underline"
+                        style={{ color: 'var(--text-secondary)' }}
+                    >
+                        Cancel
+                    </button>
+                </div>
+            )}
+            <Textarea
+                value={commentBody}
+                onChange={(e) => setCommentBody(e.target.value)}
+                placeholder={replyingTo ? `Reply to @${replyingTo.username}...` : "Write a comment..."}
+                maxLength={500}
+                rows={2}
+                className="mb-2 w-full resize-none text-sm"
+                style={{
+                    borderColor: 'var(--card-border)',
+                    color: 'var(--text-primary)',
+                    background: 'var(--background)',
+                }}
+            />
+            <div className="flex items-center justify-between gap-2">
+                <span className="text-xs" style={{ color: commentBody.length > 450 ? '#f87171' : 'var(--text-secondary)' }}>
+                    {commentBody.length}/500
+                </span>
+                <Button
+                    onClick={handlePostComment}
+                    disabled={!commentBody.trim() || submittingComment}
+                    size="sm"
+                    style={{
+                        background: 'var(--gold)',
+                        color: '#0D1117',
+                        opacity: !commentBody.trim() || submittingComment ? 0.5 : 1,
+                    }}
+                >
+                    {submittingComment ? (
+                        <span className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 rounded-full border border-t-transparent animate-spin" style={{ borderColor: '#0D1117', borderTopColor: 'transparent' }} />
+                            Posting...
+                        </span>
+                    ) : (
+                        <span className="flex items-center gap-1.5">
+                            <Send className="h-3.5 w-3.5" />
+                            Post
+                        </span>
+                    )}
+                </Button>
+            </div>
+        </div>
+    </DialogContent>
+</Dialog>
         </AppLayout>
     );
 }

@@ -54,23 +54,37 @@ export class NotificationService {
         // Play sound
         this.playSound();
 
-        // Show notification
-        const notification = new Notification(title, {
-            icon: '/images/icon.png',
-            badge: '/images/icon.png',
-            requireInteraction: false,
-            ...options,
-        });
-
         // Vibrate if supported (mobile devices)
         if ('vibrate' in navigator) {
             navigator.vibrate([200, 100, 200]);
         }
 
-        // Auto close after 5 seconds
-        setTimeout(() => notification.close(), 5000);
+        // Check if service worker is available (PWA)
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            // Use service worker notification for PWA
+            const registration = await navigator.serviceWorker.ready;
+            await registration.showNotification(title, {
+                icon: '/images/icon.png',
+                badge: '/images/icon.png',
+                requireInteraction: false,
+                vibrate: [200, 100, 200],
+                ...options,
+            });
+            return null;
+        } else {
+            // Fallback to regular notification for web
+            const notification = new Notification(title, {
+                icon: '/images/icon.png',
+                badge: '/images/icon.png',
+                requireInteraction: false,
+                ...options,
+            });
 
-        return notification;
+            // Auto close after 5 seconds
+            setTimeout(() => notification.close(), 5000);
+
+            return notification;
+        }
     }
 
     playSound(): void {

@@ -88,7 +88,7 @@ export function WatchedModal({ open, onClose, movie }: WatchedModalProps) {
                                     className="transition-transform hover:scale-110"
                                 >
                                     <Star
-                                        className={`h-8 w-8 ${
+                                        className={`lg:h-8 lg:w-8 ${
                                             value <= (hoveredRating || rating)
                                                 ? 'fill-[#F5C518] text-[#F5C518]'
                                                 : 'text-neutral-600'

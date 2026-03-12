@@ -106,9 +106,9 @@ export default function Index({ users, search }: { users: { data: User[] }; sear
                                 <div className="flex items-center gap-3">
                                     <div
                                         className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold overflow-hidden"
-                                        style={{ background: user.avatar ? 'transparent' : 'var(--gold)', color: '#0D1117' }}
+                                        style={{ background: (user.avatar && user.avatar !== '') ? 'transparent' : 'var(--gold)', color: '#0D1117' }}
                                     >
-                                        {user.avatar ? (
+                                        {user.avatar && user.avatar !== '' ? (
                                             <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                                         ) : (
                                             user.name.charAt(0).toUpperCase()
