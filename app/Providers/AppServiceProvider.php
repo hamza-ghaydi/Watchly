@@ -25,9 +25,17 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        
         if ($this->app->environment('production')) {
-        URL::forceScheme('https');
-    }
+            URL::forceScheme('https');
+            
+            // Force session configuration for mobile compatibility
+            config([
+                'session.secure' => true,
+                'session.same_site' => 'none',
+                'session.http_only' => true,
+            ]);
+        }
     }
 
     /**

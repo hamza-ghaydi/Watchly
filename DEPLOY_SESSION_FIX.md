@@ -1,4 +1,8 @@
-# Quick Deployment Guide - Session Fix
+# Quick Deployment Guide - Session Fix V2
+
+## Critical: Check APP_ENV First!
+
+The fix only works if `APP_ENV=production`. Check this first in CapRover!
 
 ## Step 1: Update CapRover Environment Variables
 
@@ -6,8 +10,10 @@
 2. Click on your app (watchly)
 3. Go to "App Configs" tab
 4. Scroll to "Environmental Variables" section
-5. Add these two variables:
+5. Add/Update these variables:
    ```
+   APP_ENV=production
+   SESSION_LIFETIME=10080
    SESSION_SECURE_COOKIE=true
    SESSION_SAME_SITE=none
    ```
@@ -17,7 +23,7 @@
 
 ```bash
 git add .
-git commit -m "Fix mobile session persistence"
+git commit -m "Fix mobile session persistence v2"
 git push origin main
 ```
 
@@ -28,7 +34,7 @@ OR manually deploy:
 bash deploy.sh
 ```
 
-## Step 3: Run Fix Script (Optional but Recommended)
+## Step 3: Run Fix Script
 
 SSH into your CapRover container:
 
@@ -44,43 +50,110 @@ cd /var/www/html
 bash fix-production.sh
 ```
 
-## Step 4: Restart Application
+## Step 4: Verify Configuration
+
+Still in the container:
+```bash
+php debug-session.php
+```
+
+Expected output:
+```
+Environment:
+  APP_ENV: production
+
+Session Config:
+  Secure: true
+  Same Site: none
+  Lifetime: 10080 minutes
+  Sessions table exists: YES
+```
+
+If any value is wrong, check your environment variables in CapRover!
+
+## Step 5: Restart Application
 
 In CapRover dashboard:
 1. Go to your app
-2. Click "Save & Update" button (even without changes)
-3. This will restart the app with new environment variables
+2. Click "Save & Update" button
+3. Wait for restart to complete
 
-## Step 5: Test
+## Step 6: Test on Mobile
 
-On your mobile device (Safari):
-1. Clear browser cache and cookies
+On your mobile device:
+1. **Clear browser data completely** (Settings → Safari/Chrome → Clear History and Website Data)
 2. Navigate to your app
 3. Login
 4. Navigate around the app
-5. Close browser completely
-6. Reopen and check if still logged in
+5. **Close browser completely** (swipe up and close)
+6. Wait 30 seconds
+7. Reopen browser and navigate to your app
+8. Should still be logged in ✓
 
-## Expected Result
+## Troubleshooting
 
-✅ Sessions persist across page navigations
-✅ Login works on mobile Safari
-✅ No more immediate logout after login
-✅ PWA mode works correctly
+### Still not working?
 
-## If Still Not Working
+1. **Check APP_ENV**
+   ```bash
+   # In container
+   echo $APP_ENV
+   # Should output: production
+   ```
 
-Check Laravel logs in CapRover:
-1. Go to your app in CapRover
-2. Click "View Logs" tab
-3. Look for session-related errors
+2. **Check session config**
+   ```bash
+   php artisan tinker
+   config('session.secure');  // Should be true
+   config('session.same_site');  // Should be 'none'
+   ```
 
-Or SSH into container and check:
-```bash
-tail -f /var/www/html/storage/logs/laravel.log
-```
+3. **Clear all caches**
+   ```bash
+   php artisan config:clear
+   php artisan cache:clear
+   php artisan config:cache
+   service apache2 restart
+   ```
 
-Common issues:
-- Environment variables not applied (restart app)
-- Sessions table doesn't exist (run fix script)
-- Config cache not cleared (run `php artisan config:clear`)
+4. **Check browser cookies**
+   - Open DevTools on mobile (use desktop Safari → Develop → Your iPhone)
+   - Go to Storage/Application → Cookies
+   - Look for `watchly-session` cookie
+   - Should have: Secure ✓, SameSite: None, HttpOnly ✓
+
+5. **Check Laravel logs**
+   ```bash
+   tail -f storage/logs/laravel.log
+   ```
+
+### Common Issues
+
+**Issue**: Config shows `secure: false`
+**Fix**: `APP_ENV` is not set to `production`. Update in CapRover and restart.
+
+**Issue**: Sessions table doesn't exist
+**Fix**: Run `php artisan session:table && php artisan migrate --force`
+
+**Issue**: Cookie not being set
+**Fix**: Check CapRover has HTTPS enabled and Force HTTPS is on.
+
+**Issue**: Works on desktop but not mobile
+**Fix**: Clear mobile browser data completely, not just cache.
+
+## What Changed in V2
+
+1. Added `EnsureSessionCookie` middleware to force correct cookie settings
+2. Updated `AppServiceProvider` to force config in production
+3. Increased session lifetime to 7 days (10080 minutes)
+4. Added `debug-session.php` script for troubleshooting
+
+## Next Steps
+
+After successful deployment:
+- Test on multiple mobile browsers (Safari, Chrome)
+- Test in PWA mode
+- Test after closing browser
+- Test after 24 hours
+
+See `MOBILE_SESSION_FIX_V2.md` for complete technical details.
