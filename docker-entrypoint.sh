@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# Clear any cached config first so env vars are always fresh
+php artisan config:clear
+php artisan cache:clear
+
 echo "Waiting for database connection..."
 # Wait for database to be ready
 until php artisan db:show 2>/dev/null; do
