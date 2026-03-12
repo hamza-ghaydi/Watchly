@@ -1,0 +1,172 @@
+================================================================================
+MOBILE SESSION FIX - FINAL DEPLOYMENT STEPS
+================================================================================
+
+CRITICAL: This fix requires APP_ENV=production to work!
+
+================================================================================
+STEP 1: UPDATE CAPROVER ENVIRONMENT VARIABLES
+================================================================================
+
+1. Open CapRover dashboard: https://captain.your-domain.com
+2. Click on your app (watchly)
+3. Go to "App Configs" tab
+4. Scroll to "Environmental Variables" section
+5. Add/Update these 4 variables:
+
+   APP_ENV=production
+   SESSION_LIFETIME=10080
+   SESSION_SECURE_COOKIE=true
+   SESSION_SAME_SITE=none
+
+6. Click "Save & Update"
+
+================================================================================
+STEP 2: DEPLOY CODE
+================================================================================
+
+Run these commands:
+
+git add .
+git commit -m "Fix mobile session persistence v2"
+git push origin main
+
+Wait for CapRover to deploy (watch the logs in CapRover dashboard)
+
+================================================================================
+STEP 3: RUN FIX SCRIPT
+================================================================================
+
+1. In CapRover dashboard, click the "SSH" button on your app
+2. Run these commands:
+
+cd /var/www/html
+bash fix-production.sh
+
+3. Wait for script to complete (should take 30-60 seconds)
+
+================================================================================
+STEP 4: VERIFY CONFIGURATION
+================================================================================
+
+Still in the SSH session, run:
+
+php debug-session.php
+
+Expected output:
+  APP_ENV: production
+  Secure: true
+  Same Site: none
+  Lifetime: 10080 minutes
+  Sessions table exists: YES
+
+If any value is wrong, go back to Step 1!
+
+================================================================================
+STEP 5: RESTART APPLICATION
+================================================================================
+
+1. Go back to CapRover dashboard
+2. Click "Save & Update" button on your app
+3. Wait for restart to complete (watch logs)
+
+================================================================================
+STEP 6: TEST ON MOBILE
+================================================================================
+
+IMPORTANT: You MUST clear ALL browser data, not just cache!
+
+On iPhone/iPad (Safari):
+1. Settings → Safari → Clear History and Website Data
+2. Open Safari and go to your app
+3. Login with your credentials
+4. Navigate around the app (dashboard, movies, etc.)
+5. Close Safari completely (swipe up, close app)
+6. Wait 30 seconds
+7. Open Safari again
+8. Go to your app
+9. ✅ You should STILL be logged in!
+
+On Android (Chrome):
+1. Settings → Privacy → Clear browsing data → All time → Cookies and site data
+2. Open Chrome and go to your app
+3. Login with your credentials
+4. Navigate around the app
+5. Close Chrome completely
+6. Wait 30 seconds
+7. Open Chrome again
+8. Go to your app
+9. ✅ You should STILL be logged in!
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+IF STILL NOT WORKING:
+
+1. Check APP_ENV (SSH into container):
+   echo $APP_ENV
+   Should output: production
+
+2. Check session config (SSH into container):
+   php artisan tinker
+   config('session.secure');
+   Should output: true
+
+3. Clear all caches (SSH into container):
+   php artisan config:clear
+   php artisan cache:clear
+   php artisan config:cache
+   service apache2 restart
+
+4. Check browser cookies:
+   - Open DevTools on mobile
+   - Go to Application/Storage → Cookies
+   - Look for "watchly-session" cookie
+   - Should have: Secure ✓, SameSite: None, HttpOnly ✓
+
+5. Check Laravel logs (SSH into container):
+   tail -f storage/logs/laravel.log
+   Look for any session or authentication errors
+
+================================================================================
+WHAT WAS FIXED
+================================================================================
+
+1. Added EnsureSessionCookie middleware - Forces correct cookie settings
+2. Updated AppServiceProvider - Forces config in production mode
+3. Extended session lifetime - From 2 hours to 7 days
+4. Fixed cookie settings - secure=true, same_site=none for mobile
+
+================================================================================
+WHY IT WORKS
+================================================================================
+
+Mobile browsers (especially Safari) are strict about cookies:
+- Require secure=true for HTTPS
+- Require same_site=none for cross-site contexts
+- Require proper cookie settings on every response
+- Need longer session lifetime
+
+Desktop browsers are more lenient, which is why it worked there.
+
+================================================================================
+DOCUMENTATION FILES
+================================================================================
+
+README_SESSION_FIX.md - Quick start guide
+DEPLOY_CHECKLIST.md - Complete checklist
+DEPLOY_SESSION_FIX.md - Detailed deployment guide
+MOBILE_SESSION_FIX_V2.md - Technical documentation
+debug-session.php - Configuration verification script
+
+================================================================================
+NEED HELP?
+================================================================================
+
+If still not working after following ALL steps:
+1. Run: php debug-session.php (share output)
+2. Check browser DevTools → Network → Response Headers
+3. Share Laravel logs from storage/logs/laravel.log
+
+================================================================================
