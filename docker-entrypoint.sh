@@ -50,6 +50,22 @@ php artisan cache:clear
 
 echo "Running migrations..."
 php artisan migrate --force
+echo "Ensuring bio column exists..."
+php artisan db:statement "ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT NULL" 2>/dev/null || \
+php -r "
+    \$pdo = new PDO(
+        'mysql:host=' . getenv('DB_HOST') . ';port=' . getenv('DB_PORT') . ';dbname=' . getenv('DB_DATABASE'),
+        getenv('DB_USERNAME'),
+        getenv('DB_PASSWORD')
+    );
+    \$cols = \$pdo->query('SHOW COLUMNS FROM users LIKE \'bio\'')->fetchAll();
+    if (empty(\$cols)) {
+        \$pdo->exec('ALTER TABLE users ADD COLUMN bio TEXT NULL');
+        echo \"Added bio column.\n\";
+    } else {
+        echo \"bio column already exists.\n\";
+    }
+"
 
 if [ "$RUN_SEEDS" = "true" ]; then
     echo "Running seeders..."
@@ -62,4 +78,6 @@ php artisan route:cache
 php artisan view:cache
 
 echo "Starting Apache..."
+# Tail Laravel log to stdout so it appears in CapRover logs
+tail -f /var/www/html/storage/logs/laravel.log &
 exec "$@"
