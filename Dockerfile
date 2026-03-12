@@ -44,8 +44,8 @@ RUN composer install --no-dev --optimize-autoloader --no-scripts
 # Copy package files
 COPY package.json package-lock.json ./
 
-# Install Node dependencies
-RUN npm ci --only=production
+# Install ALL Node dependencies (devDeps needed for Vite build)
+RUN npm ci
 
 # Copy the rest of the application
 COPY . .
