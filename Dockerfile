@@ -25,6 +25,8 @@ RUN echo "upload_max_filesize = 10M" >> /usr/local/etc/php/conf.d/uploads.ini &&
     echo "max_execution_time = 300" >> /usr/local/etc/php/conf.d/uploads.ini && \
     echo "upload_tmp_dir = /tmp" >> /usr/local/etc/php/conf.d/uploads.ini
 
+RUN echo "upload_tmp_dir = /tmp/php_uploads" >> /usr/local/etc/php/conf.d/uploads.ini
+
 # Enable Apache rewrite
 RUN a2enmod rewrite
 
