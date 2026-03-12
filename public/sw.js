@@ -1,7 +1,6 @@
 // Service Worker for Watchly PWA
-const CACHE_NAME = 'watchly-v1';
+const CACHE_NAME = 'watchly-v2';
 const urlsToCache = [
-    '/',
     '/images/icon.png',
     '/images/logowatchly.png',
     '/sounds/notification.mp3',
@@ -19,6 +18,24 @@ self.addEventListener('install', (event) => {
 
 // Fetch event - serve from cache when offline
 self.addEventListener('fetch', (event) => {
+    // Don't intercept navigation requests (page loads, redirects)
+    if (event.request.mode === 'navigate') {
+        return;
+    }
+
+    // Don't intercept POST requests or other mutations
+    if (event.request.method !== 'GET') {
+        return;
+    }
+
+    // Only cache static assets
+    const url = new URL(event.request.url);
+    const isStaticAsset = url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|woff|woff2|ttf|ico|mp3)$/);
+    
+    if (!isStaticAsset) {
+        return;
+    }
+
     event.respondWith(
         caches.match(event.request)
             .then((response) => {
@@ -27,8 +44,7 @@ self.addEventListener('fetch', (event) => {
                     return response;
                 }
                 return fetch(event.request);
-            }
-        )
+            })
     );
 });
 
