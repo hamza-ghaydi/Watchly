@@ -3,7 +3,6 @@ export class NotificationService {
     private static instance: NotificationService;
     private permission: NotificationPermission = 'default';
     private audio: HTMLAudioElement | null = null;
-    private audioContext: AudioContext | null = null;
 
     private constructor() {
         this.permission = Notification.permission;
@@ -15,11 +14,6 @@ export class NotificationService {
         this.audio.addEventListener('error', () => {
             this.audio = null;
         });
-
-        // Initialize Web Audio API for fallback beep
-        if ('AudioContext' in window || 'webkitAudioContext' in window) {
-            this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-        }
 
         // Listen for messages from service worker to play sound
         if ('serviceWorker' in navigator) {
@@ -58,13 +52,8 @@ export class NotificationService {
             if (!granted) return null;
         }
 
-        // Play sound
+        // Play sound (will only work after user interaction)
         this.playSound();
-
-        // Vibrate if supported (mobile devices)
-        if ('vibrate' in navigator) {
-            navigator.vibrate([200, 100, 200]);
-        }
 
         // Check if service worker is available (PWA)
         if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
@@ -98,38 +87,13 @@ export class NotificationService {
     }
 
     playSound(): void {
-        // Try to play MP3 file first
+        // Only play MP3 file - no fallback beep
         if (this.audio) {
             this.audio.currentTime = 0;
-            this.audio.play().catch(() => {
-                // If MP3 fails, use fallback beep
-                this.playFallbackBeep();
+            this.audio.play().catch((error) => {
+                // Silently fail if autoplay is blocked - this is expected on first load
+                // Sound will work after user interacts with the page
             });
-        } else {
-            // Use fallback beep if no audio file
-            this.playFallbackBeep();
-        }
-    }
-
-    private playFallbackBeep(): void {
-        if (!this.audioContext) return;
-
-        try {
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
-
-            oscillator.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
-
-            oscillator.frequency.value = 800;
-            oscillator.type = 'sine';
-
-            gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
-
-            oscillator.start(this.audioContext.currentTime);
-            oscillator.stop(this.audioContext.currentTime + 0.3);
-        } catch (err) {
         }
     }
 
