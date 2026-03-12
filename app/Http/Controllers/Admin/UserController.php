@@ -41,11 +41,23 @@ class UserController extends Controller
             'role' => 'required|in:user,admin',
         ]);
 
+        // Generate a unique username from name
+        $baseUsername = strtolower(str_replace(' ', '', $request->name));
+        $username = $baseUsername;
+        $counter = 1;
+        
+        // Ensure username is unique
+        while (User::where('username', $username)->exists()) {
+            $username = $baseUsername . $counter;
+            $counter++;
+        }
+
         User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $request->role,
+            'username' => $username,
         ]);
 
         return redirect()->route('admin.users.index')->with('success', 'User created successfully!');
@@ -77,11 +89,29 @@ class UserController extends Controller
             'role' => 'required|in:user,admin',
         ]);
 
-        $user->update([
+        // If name changed, regenerate username
+        $updateData = [
             'name' => $request->name,
             'email' => $request->email,
             'role' => $request->role,
-        ]);
+        ];
+
+        if ($request->name !== $user->name) {
+            // Generate a unique username from name
+            $baseUsername = strtolower(str_replace(' ', '', $request->name));
+            $username = $baseUsername;
+            $counter = 1;
+            
+            // Ensure username is unique (excluding current user)
+            while (User::where('username', $username)->where('id', '!=', $user->id)->exists()) {
+                $username = $baseUsername . $counter;
+                $counter++;
+            }
+            
+            $updateData['username'] = $username;
+        }
+
+        $user->update($updateData);
 
         if ($request->filled('password')) {
             $user->update([

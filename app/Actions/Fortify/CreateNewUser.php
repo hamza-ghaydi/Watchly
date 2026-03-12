@@ -24,8 +24,8 @@ class CreateNewUser implements CreatesNewUsers
             'password' => $this->passwordRules(),
         ])->validate();
 
-        // Generate a unique username from email
-        $baseUsername = strtolower(explode('@', $input['email'])[0]);
+        // Generate a unique username from name
+        $baseUsername = strtolower(str_replace(' ', '', $input['name']));
         $username = $baseUsername;
         $counter = 1;
         
