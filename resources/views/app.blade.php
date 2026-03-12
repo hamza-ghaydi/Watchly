@@ -46,22 +46,6 @@
                 min-height: 100vh;
                 min-height: -webkit-fill-available;
             }
-
-            /* PWA Safe Area Padding - Only apply in standalone mode (PWA) */
-            @media (display-mode: standalone) {
-                #app {
-                    padding-top: env(safe-area-inset-top);
-                    padding-bottom: env(safe-area-inset-bottom);
-                    padding-left: env(safe-area-inset-left);
-                    padding-right: env(safe-area-inset-right);
-                }
-            }
-
-            /* Ensure full height */
-            #app {
-                min-height: 100vh;
-                min-height: -webkit-fill-available;
-            }
         </style>
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
