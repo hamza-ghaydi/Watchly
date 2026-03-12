@@ -24,7 +24,11 @@ RUN echo "upload_max_filesize = 10M" >> /usr/local/etc/php/conf.d/uploads.ini &&
     echo "memory_limit = 256M" >> /usr/local/etc/php/conf.d/uploads.ini && \
     echo "max_execution_time = 300" >> /usr/local/etc/php/conf.d/uploads.ini && \
     echo "upload_tmp_dir = /tmp" >> /usr/local/etc/php/conf.d/uploads.ini && \
-    echo "expose_php = Off" >> /usr/local/etc/php/conf.d/uploads.ini
+    echo "expose_php = Off" >> /usr/local/etc/php/conf.d/uploads.ini && \
+    echo "display_errors = Off" >> /usr/local/etc/php/conf.d/uploads.ini && \
+    echo "display_startup_errors = Off" >> /usr/local/etc/php/conf.d/uploads.ini && \
+    echo "log_errors = On" >> /usr/local/etc/php/conf.d/uploads.ini && \
+    echo "error_log = /var/www/html/storage/logs/php-errors.log" >> /usr/local/etc/php/conf.d/uploads.ini
 
 # Enable Apache headers module
 RUN a2enmod headers

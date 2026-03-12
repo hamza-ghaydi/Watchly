@@ -46,16 +46,16 @@ class ProfileController extends Controller
             // Delete old avatar if exists
             if ($user->avatar) {
                 $oldPath = str_replace('/storage/', '', $user->avatar);
-                \Storage::disk('public')->delete($oldPath);
+                Storage::disk('public')->delete($oldPath);
             }
             
             $avatar = $request->file('avatar');
-            $filename = 'avatars/avatar_' . $user->id . '_' . time() . '.' . $avatar->getClientOriginalExtension();
+            $filename = 'avatar_' . $user->id . '_' . time() . '.' . $avatar->getClientOriginalExtension();
             
             // Store file with error handling
             try {
-                $path = $avatar->storeAs('avatars', basename($filename), 'public');
-                $user->avatar = '/storage/' . $path;
+                $path = $avatar->storeAs('avatars', $filename, 'public');
+                $user->avatar = '/storage/avatars/' . $filename;
             } catch (\Exception $e) {
                 Log::error('Avatar upload failed: ' . $e->getMessage());
                 return back()->withErrors(['avatar' => 'Failed to upload avatar. Please try again.']);
@@ -67,17 +67,9 @@ class ProfileController extends Controller
         }
 
         // Save all changes at once
-        $saved = $user->save();
-        
-        Log::info('Profile save result', [
-            'saved' => $saved,
-            'user_id' => $user->id,
-            'bio_in_model' => $user->bio,
-            'avatar_in_model' => $user->avatar,
-            'dirty_attributes' => $user->getDirty(),
-        ]);
+        $user->save();
 
-        return to_route('profile.edit')->with('status', 'profile-updated');
+        return back()->with('status', 'profile-updated');
     }
 
     /**
