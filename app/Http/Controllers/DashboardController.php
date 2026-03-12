@@ -164,7 +164,7 @@ class DashboardController extends Controller
                 DB::raw('SUM(CASE WHEN movies.type = "movie" THEN 1 ELSE 0 END) as movies'),
                 DB::raw('SUM(CASE WHEN movies.type = "series" THEN 1 ELSE 0 END) as series')
             )
-            ->groupBy('year')
+            ->groupBy(DB::raw($yearFormat))
             ->orderBy('year')
             ->get()
             ->keyBy('year');
