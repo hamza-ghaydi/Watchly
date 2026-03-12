@@ -1,0 +1,50 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Node
+node_modules
+npm-debug.log
+
+# Environment
+.env
+.env.backup
+.env.production
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Laravel
+/vendor
+/storage/*.key
+/storage/logs/*
+!/storage/logs/.gitignore
+/bootstrap/cache/*
+!/bootstrap/cache/.gitignore
+
+# Testing
+/tests
+phpunit.xml
+.phpunit.result.cache
+
+# Build artifacts
+/public/hot
+/public/storage
+/public/build
+
+# Documentation
+README.md
+*.md
+
+# Database
+database/database.sqlite
+*.sqlite

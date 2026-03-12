@@ -12,10 +12,11 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     libicu-dev \
     libjpeg-dev \
-    libfreetype6-dev
+    libfreetype6-dev \
+    default-mysql-client
 
 # Install PHP extensions
-RUN docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd
+RUN docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd zip intl
 
 # Enable Apache rewrite
 RUN a2enmod rewrite
@@ -34,32 +35,51 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
 
 WORKDIR /var/www/html
 
-# Copy project
-COPY . .
+# Copy composer files first for better caching
+COPY composer.json composer.lock ./
 
-# Install PHP dependencies FIRST
-RUN composer install --optimize-autoloader
+# Install PHP dependencies
+RUN composer install --no-dev --optimize-autoloader --no-scripts
+
+# Copy package files
+COPY package.json package-lock.json ./
 
 # Install Node dependencies
-RUN npm install
+RUN npm ci --only=production
+
+# Copy the rest of the application
+COPY . .
+
+# Run composer scripts
+RUN composer dump-autoload --optimize
 
 # Build Vite assets
 RUN npm run build
 
-# Create SQLite database
-RUN mkdir -p database && \
-    touch database/database.sqlite && \
-    chown -R www-data:www-data database
+# Remove node_modules to reduce image size
+RUN rm -rf node_modules
 
-# Permissions
-RUN chown -R www-data:www-data storage bootstrap/cache
+# Create necessary directories and set permissions
+RUN mkdir -p storage/framework/cache/data \
+    storage/framework/sessions \
+    storage/framework/views \
+    storage/logs \
+    bootstrap/cache \
+    public/avatars && \
+    chown -R www-data:www-data storage bootstrap/cache public/avatars && \
+    chmod -R 775 storage bootstrap/cache
 
 # Set Apache root
 RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf
 
-# Storage link
-RUN ln -s /var/www/html/storage/app/public /var/www/html/public/storage
+# Create storage link
+RUN php artisan storage:link || true
 
 EXPOSE 80
 
-CMD php artisan migrate --force && php artisan db:seed --force && apache2-foreground
+# Entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["apache2-foreground"]
