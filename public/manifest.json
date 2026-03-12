@@ -2,9 +2,9 @@
   "name": "Watchly - Movie Tracking & Social",
   "short_name": "Watchly",
   "description": "Track movies, share recommendations, and connect with friends",
-  "start_url": "/",
+  "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#0D1117",
   "theme_color": "#d4af37",
   "orientation": "portrait-primary",
   "icons": [
