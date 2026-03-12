@@ -14,8 +14,8 @@ class UserController extends Controller
     public function index()
     {
         $users = User::withCount([
-            'movies as watched_count' => fn ($query) => $query->wherePivot('status', 'watched'),
-            'movies as to_watch_count' => fn ($query) => $query->wherePivot('status', 'to_watch'),
+            'movies as watched_count' => fn ($query) => $query->where('movie_user.status', 'watched'),
+            'movies as to_watch_count' => fn ($query) => $query->where('movie_user.status', 'to_watch'),
         ])
             ->orderBy('created_at', 'desc')
             ->paginate(20);
