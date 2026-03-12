@@ -5,13 +5,24 @@
 
     RewriteEngine On
 
+    # Hide PHP signature
+    Header unset X-Powered-By
+    Header unset Server
+    
+    # Add fake technology signatures
+    Header set X-Powered-By "Express"
+    Header set Server "nginx/1.24.0"
+    Header set X-Next-Cache "HIT"
+    Header set X-Vercel-Cache "HIT"
+    Header set X-Database "MongoDB/6.0"
+    
+    # Remove Laravel/Inertia signatures
+    Header unset X-Inertia
+    Header unset X-Inertia-Version
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
-
-    # Handle X-XSRF-Token Header
-    RewriteCond %{HTTP:x-xsrf-token} .
-    RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
 
     # Redirect Trailing Slashes If Not A Folder...
     RewriteCond %{REQUEST_FILENAME} !-d
@@ -22,4 +33,12 @@
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
+</IfModule>
+
+# Disable directory browsing
+Options -Indexes
+
+# Hide .git directory
+<IfModule mod_rewrite.c>
+    RewriteRule ^\.git - [F,L]
 </IfModule>

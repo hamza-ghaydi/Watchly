@@ -18,17 +18,25 @@ RUN apt-get update && apt-get install -y \
 # Install PHP extensions
 RUN docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd zip intl
 
-# Configure PHP for file uploads
+# Configure PHP for file uploads and hide version
 RUN echo "upload_max_filesize = 10M" >> /usr/local/etc/php/conf.d/uploads.ini && \
     echo "post_max_size = 10M" >> /usr/local/etc/php/conf.d/uploads.ini && \
     echo "memory_limit = 256M" >> /usr/local/etc/php/conf.d/uploads.ini && \
     echo "max_execution_time = 300" >> /usr/local/etc/php/conf.d/uploads.ini && \
-    echo "upload_tmp_dir = /tmp" >> /usr/local/etc/php/conf.d/uploads.ini
+    echo "upload_tmp_dir = /tmp" >> /usr/local/etc/php/conf.d/uploads.ini && \
+    echo "expose_php = Off" >> /usr/local/etc/php/conf.d/uploads.ini
+
+# Enable Apache headers module
+RUN a2enmod headers
 
 RUN echo "upload_tmp_dir = /tmp/php_uploads" >> /usr/local/etc/php/conf.d/uploads.ini
 
-# Enable Apache rewrite
-RUN a2enmod rewrite
+# Enable Apache rewrite and headers modules
+RUN a2enmod rewrite headers
+
+# Copy Apache security configuration
+COPY apache-security.conf /etc/apache2/conf-available/security.conf
+RUN a2enconf security
 
 RUN echo '<Directory /var/www/html/public>\n\
     AllowOverride All\n\
