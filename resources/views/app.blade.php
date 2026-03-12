@@ -92,40 +92,52 @@
     <body class="font-sans antialiased">
         @inertia
 
-        {{-- Service Worker Registration --}}
+        {{-- Service Worker Registration - Only in PWA mode --}}
         <script>
-            if ('serviceWorker' in navigator) {
-                window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/sw.js')
-                        .then(registration => {
-                            console.log('Service Worker registered');
-                            
-                            // Check for updates every 60 seconds
-                            setInterval(() => {
-                                registration.update();
-                            }, 60000);
-
-                            // Handle service worker updates
-                            registration.addEventListener('updatefound', () => {
-                                const newWorker = registration.installing;
-                                newWorker.addEventListener('statechange', () => {
-                                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                        // New service worker available, reload page
-                                        console.log('New service worker available, reloading...');
-                                        window.location.reload();
-                                    }
-                                });
-                            });
-                        })
-                        .catch(error => {
-                            console.error('Service Worker registration failed:', error);
-                        });
-                });
-            }
-
-            // Detect PWA mode and store in cookie
-            if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+            // Detect PWA mode
+            const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+            
+            if (isPWA) {
                 document.cookie = 'pwa_mode=true; path=/; max-age=31536000';
+                
+                // Only register service worker in PWA mode
+                if ('serviceWorker' in navigator) {
+                    window.addEventListener('load', () => {
+                        navigator.serviceWorker.register('/sw.js')
+                            .then(registration => {
+                                console.log('[PWA] Service Worker registered');
+                                
+                                // Check for updates every 60 seconds
+                                setInterval(() => {
+                                    registration.update();
+                                }, 60000);
+
+                                // Handle service worker updates
+                                registration.addEventListener('updatefound', () => {
+                                    const newWorker = registration.installing;
+                                    newWorker.addEventListener('statechange', () => {
+                                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                            console.log('[PWA] New service worker available');
+                                            // Don't auto-reload, let user refresh manually
+                                        }
+                                    });
+                                });
+                            })
+                            .catch(error => {
+                                console.error('[PWA] Service Worker registration failed:', error);
+                            });
+                    });
+                }
+            } else {
+                // In regular browser mode, unregister any existing service worker
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(registrations => {
+                        registrations.forEach(registration => {
+                            console.log('[Browser] Unregistering service worker');
+                            registration.unregister();
+                        });
+                    });
+                }
             }
         </script>
     </body>

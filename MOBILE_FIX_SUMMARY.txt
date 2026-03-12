@@ -1,0 +1,117 @@
+================================================================================
+CRITICAL MOBILE BROWSER FIX - SUMMARY
+================================================================================
+
+ROOT CAUSE IDENTIFIED:
+The service worker was registering in mobile browsers (not just PWA) and
+intercepting authenticated routes, causing:
+1. Infinite reload loops
+2. Session cookies being dropped
+3. Dashboard showing white screen
+
+================================================================================
+THE FIX (3 Critical Changes)
+================================================================================
+
+1. SERVICE WORKER ONLY IN PWA MODE
+   - Mobile browser: NO service worker (unregisters if exists)
+   - PWA mode: Service worker active
+   - File: resources/views/app.blade.php
+
+2. SERVICE WORKER PASSIVE MODE
+   - ONLY caches 3 static files (icon, logo, sound)
+   - NEVER intercepts HTML, API, authenticated routes, POST requests
+   - File: public/sw.js (completely rewritten)
+
+3. API ROUTES REGISTERED
+   - Added api: routes/api.php to bootstrap/app.php
+   - Fixes 404 on /api/client-error
+   - ErrorBoundary can now log errors
+
+BONUS FIXES:
+- Removed EnsureSessionCookie middleware (was interfering)
+- Removed session config forcing in AppServiceProvider
+- Set same_site = 'lax' for better mobile compatibility
+
+================================================================================
+DEPLOY
+================================================================================
+
+bash deploy-mobile-fix.sh
+
+OR manually:
+
+php artisan config:clear && php artisan cache:clear && php artisan route:clear && php artisan view:clear && php artisan optimize:clear
+npm run build
+php artisan optimize
+
+================================================================================
+CRITICAL: CLEAR SERVICE WORKER ON MOBILE
+================================================================================
+
+Users with the old service worker MUST clear browser data:
+Settings → Safari/Chrome → Clear History and Website Data
+
+OR the new code will automatically unregister it on next visit.
+
+================================================================================
+TEST
+================================================================================
+
+Mobile Browser:
+1. Clear browser data
+2. Open site
+3. Login
+4. ✅ Dashboard loads (no white screen, no loop)
+5. Console shows: "[Browser] Unregistering service worker"
+
+PWA:
+1. Install from home screen
+2. Open PWA
+3. Login
+4. ✅ Dashboard loads
+5. Console shows: "[PWA] Service Worker registered"
+
+================================================================================
+WHY THIS WORKS
+================================================================================
+
+BEFORE:
+Mobile Browser → SW registered → SW intercepts /dashboard → breaks session
+→ redirects to login → loop → white screen
+
+AFTER:
+Mobile Browser → NO SW → direct network requests → session preserved
+→ dashboard loads normally
+
+PWA → SW registered → SW only caches static files → everything else network
+→ works normally
+
+================================================================================
+FILES CHANGED
+================================================================================
+
+✓ bootstrap/app.php - Added API routes
+✓ public/sw.js - Complete rewrite (passive mode)
+✓ resources/views/app.blade.php - SW only in PWA mode
+✓ app/Providers/AppServiceProvider.php - Removed session forcing
+✓ config/session.php - same_site = 'lax'
+✗ app/Http/Middleware/EnsureSessionCookie.php - DELETED
+
+================================================================================
+EXPECTED RESULT
+================================================================================
+
+Mobile browser works like a normal website:
+- No service worker interference
+- Session cookies work
+- No caching issues
+- No infinite loops
+- Dashboard loads normally
+
+PWA works with offline capabilities:
+- Service worker for push notifications
+- Static assets cached
+- Everything else from network
+
+================================================================================

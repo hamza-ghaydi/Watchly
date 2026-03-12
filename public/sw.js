@@ -1,90 +1,85 @@
-// Service Worker for Watchly PWA
-const CACHE_NAME = 'watchly-v3';
-const urlsToCache = [
+// Service Worker for Watchly PWA - Minimal, Non-Intercepting Version
+const CACHE_NAME = 'watchly-v4';
+const STATIC_ASSETS = [
     '/images/icon.png',
     '/images/logowatchly.png',
     '/sounds/notification.mp3',
 ];
 
-// Install event - cache resources
+// Install event - cache static resources only
 self.addEventListener('install', (event) => {
+    console.log('[SW] Installing...');
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
-                return cache.addAll(urlsToCache);
+                console.log('[SW] Caching static assets');
+                return cache.addAll(STATIC_ASSETS).catch(err => {
+                    console.error('[SW] Failed to cache assets:', err);
+                });
             })
     );
     self.skipWaiting();
 });
 
-// Fetch event - serve from cache when offline
+// Activate event - clean up old caches
+self.addEventListener('activate', (event) => {
+    console.log('[SW] Activating...');
+    event.waitUntil(
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames
+                    .filter((cacheName) => cacheName !== CACHE_NAME)
+                    .map((cacheName) => {
+                        console.log('[SW] Deleting old cache:', cacheName);
+                        return caches.delete(cacheName);
+                    })
+            );
+        })
+    );
+    clients.claim();
+});
+
+// Fetch event - CRITICAL: DO NOT INTERCEPT ANYTHING EXCEPT EXPLICIT STATIC ASSETS
 self.addEventListener('fetch', (event) => {
     const { request } = event;
     const url = new URL(request.url);
 
-    // CRITICAL: Never intercept these — let them go to the server always
-    const isInertiaRequest = request.headers.get('X-Inertia');
-    const isAPIRequest = url.pathname.startsWith('/api/');
-    const isAuthRoute = [
-        '/dashboard',
-        '/movies',
-        '/feed',
-        '/recommendations',
-        '/watch-together',
-        '/notifications',
-        '/users',
-        '/admin',
-        '/settings',
-    ].some((p) => url.pathname.startsWith(p));
-    const isPOST = request.method !== 'GET';
-
-    if (isInertiaRequest || isAPIRequest || isAuthRoute || isPOST) {
-        // Always fetch from network — never cache authenticated pages
-        return;
-    }
-
-    // Don't intercept navigation requests (page loads, redirects)
-    if (request.mode === 'navigate') {
-        return;
-    }
-
-    // Only cache static assets
-    const isStaticAsset = url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|woff|woff2|ttf|ico|mp3)$/);
+    // NEVER INTERCEPT:
+    // 1. Any HTML pages (navigation)
+    // 2. Any API calls
+    // 3. Any authenticated routes
+    // 4. Any POST/PUT/DELETE requests
+    // 5. Any Inertia requests
     
-    if (!isStaticAsset) {
+    // Only intercept explicit static assets we cached
+    const isExplicitStaticAsset = STATIC_ASSETS.some(asset => url.pathname === asset);
+    
+    if (!isExplicitStaticAsset) {
+        // Let the browser handle it normally - DO NOT INTERCEPT
         return;
     }
 
+    // Only for our explicit static assets, try cache first
     event.respondWith(
         caches.match(request)
             .then((response) => {
-                // Cache hit - return response
                 if (response) {
+                    console.log('[SW] Serving from cache:', url.pathname);
                     return response;
                 }
+                console.log('[SW] Fetching from network:', url.pathname);
+                return fetch(request);
+            })
+            .catch((error) => {
+                console.error('[SW] Fetch failed:', error);
                 return fetch(request);
             })
     );
 });
 
-// Activate event - clean up old caches
-self.addEventListener('activate', (event) => {
-    const cacheWhitelist = [CACHE_NAME];
-    event.waitUntil(
-        caches.keys().then((cacheNames) => {
-            return Promise.all(
-                cacheNames.map((cacheName) => {
-                    if (cacheWhitelist.indexOf(cacheName) === -1) {
-                        return caches.delete(cacheName);
-                    }
-                })
-            );
-        })
-    );
-});
-
 // Handle push notifications
 self.addEventListener('push', (event) => {
+    console.log('[SW] Push notification received');
     const data = event.data ? event.data.json() : {};
     const title = data.title || 'Watchly';
     const options = {
@@ -94,7 +89,7 @@ self.addEventListener('push', (event) => {
         vibrate: [200, 100, 200],
         tag: data.tag || 'watchly-notification',
         requireInteraction: false,
-        silent: true, // Prevent default sound - we play custom sound via message
+        silent: true,
         data: data.url ? { url: data.url } : {},
         actions: data.url ? [
             { action: 'open', title: 'Open' },
@@ -105,7 +100,6 @@ self.addEventListener('push', (event) => {
     event.waitUntil(
         Promise.all([
             self.registration.showNotification(title, options),
-            // Play notification sound
             playNotificationSound()
         ])
     );
@@ -114,33 +108,32 @@ self.addEventListener('push', (event) => {
 // Function to play notification sound
 async function playNotificationSound() {
     try {
-        // Get all clients (open tabs/windows)
         const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-        
-        // Send message to all clients to play sound
         clients.forEach(client => {
             client.postMessage({
                 type: 'PLAY_NOTIFICATION_SOUND'
             });
         });
     } catch (error) {
+        console.error('[SW] Failed to play notification sound:', error);
     }
 }
 
 // Listen for messages from clients
 self.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'SKIP_WAITING') {
+        console.log('[SW] Skip waiting requested');
         self.skipWaiting();
     }
 });
 
 // Handle notification action clicks
 self.addEventListener('notificationclick', (event) => {
+    console.log('[SW] Notification clicked');
     event.notification.close();
     
     const urlToOpen = event.notification.data?.url || '/';
     
-    // Handle action buttons
     if (event.action === 'close') {
         return;
     }
@@ -148,14 +141,12 @@ self.addEventListener('notificationclick', (event) => {
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true })
             .then((windowClients) => {
-                // Check if there's already a window open
                 for (let i = 0; i < windowClients.length; i++) {
                     const client = windowClients[i];
                     if (client.url.includes(urlToOpen) && 'focus' in client) {
                         return client.focus();
                     }
                 }
-                // If not, open a new window
                 if (clients.openWindow) {
                     return clients.openWindow(urlToOpen);
                 }

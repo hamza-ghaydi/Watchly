@@ -28,13 +28,6 @@ class AppServiceProvider extends ServiceProvider
         
         if ($this->app->environment('production')) {
             URL::forceScheme('https');
-            
-            // Force session configuration for mobile compatibility
-            config([
-                'session.secure' => true,
-                'session.same_site' => 'none',
-                'session.http_only' => true,
-            ]);
         }
     }
 
