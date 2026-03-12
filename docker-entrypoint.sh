@@ -50,21 +50,37 @@ php artisan cache:clear
 
 echo "Running migrations..."
 php artisan migrate --force
-echo "Ensuring bio column exists..."
-php artisan db:statement "ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT NULL" 2>/dev/null || \
+
+echo "Ensuring schema is in sync with migrations..."
 php -r "
     \$pdo = new PDO(
         'mysql:host=' . getenv('DB_HOST') . ';port=' . getenv('DB_PORT') . ';dbname=' . getenv('DB_DATABASE'),
         getenv('DB_USERNAME'),
         getenv('DB_PASSWORD')
     );
-    \$cols = \$pdo->query('SHOW COLUMNS FROM users LIKE \'bio\'')->fetchAll();
-    if (empty(\$cols)) {
-        \$pdo->exec('ALTER TABLE users ADD COLUMN bio TEXT NULL');
-        echo \"Added bio column.\n\";
-    } else {
-        echo \"bio column already exists.\n\";
+
+    \$required = [
+        'users' => [
+            'username' => 'VARCHAR(255) NULL',
+            'avatar'   => 'VARCHAR(255) NULL',
+            'bio'      => 'TEXT NULL',
+            'role'     => \"VARCHAR(255) NOT NULL DEFAULT 'user'\",
+            'two_factor_secret'         => 'TEXT NULL',
+            'two_factor_recovery_codes' => 'TEXT NULL',
+            'two_factor_confirmed_at'   => 'TIMESTAMP NULL',
+        ],
+    ];
+
+    foreach (\$required as \$table => \$columns) {
+        foreach (\$columns as \$col => \$def) {
+            \$exists = \$pdo->query(\"SHOW COLUMNS FROM \$table LIKE '\$col'\")->fetchAll();
+            if (empty(\$exists)) {
+                \$pdo->exec(\"ALTER TABLE \$table ADD COLUMN \$col \$def\");
+                echo \"Added missing column: \$table.\$col\n\";
+            }
+        }
     }
+    echo \"Schema sync complete.\n\";
 "
 
 if [ "$RUN_SEEDS" = "true" ]; then
