@@ -1,15 +1,21 @@
 #!/bin/bash
 set -e
 
+echo "Setting up directories and permissions..."
+
 # Ensure /tmp directory exists with proper permissions
 mkdir -p /tmp
 chmod 1777 /tmp
-chown www-data:www-data /tmp
+chown root:root /tmp
 
 # Ensure avatars directory exists
 mkdir -p /var/www/html/public/avatars
 chown -R www-data:www-data /var/www/html/public/avatars
 chmod -R 775 /var/www/html/public/avatars
+
+# Ensure storage directories have proper permissions
+chown -R www-data:www-data /var/www/html/storage
+chmod -R 775 /var/www/html/storage
 
 # Only clear config cache (no DB needed for this)
 php artisan config:clear

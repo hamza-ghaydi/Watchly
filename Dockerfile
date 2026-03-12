@@ -72,11 +72,14 @@ RUN mkdir -p storage/framework/cache/data \
     storage/framework/views \
     storage/logs \
     bootstrap/cache \
-    public/avatars \
-    /tmp && \
-    chown -R www-data:www-data storage bootstrap/cache public/avatars /tmp && \
-    chmod -R 775 storage bootstrap/cache /tmp && \
-    chmod 1777 /tmp
+    public/avatars && \
+    chown -R www-data:www-data storage bootstrap/cache public/avatars && \
+    chmod -R 775 storage bootstrap/cache
+
+# Create /tmp directory with proper permissions for PHP uploads
+RUN mkdir -p /tmp && \
+    chmod 1777 /tmp && \
+    chown root:root /tmp
 
 # Set Apache root
 RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf

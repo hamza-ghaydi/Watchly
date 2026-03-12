@@ -189,6 +189,48 @@ For persistent file storage (avatars, etc.):
 
 ## Troubleshooting
 
+### Missing Database Columns (bio, etc.)
+
+If you see errors like "Unknown column 'bio' in 'field list'":
+
+1. SSH into your container:
+   - Go to CapRover dashboard → Your app → Deployment tab
+   - Scroll down and click "View Logs"
+   - Click "SSH to Container" button
+   
+2. Run migrations manually:
+   ```bash
+   php artisan migrate --force
+   ```
+
+3. Verify migrations ran:
+   ```bash
+   php artisan migrate:status
+   ```
+
+### File Upload Issues (/tmp directory)
+
+If you see errors like "The file '/tmp/phpXXXXXX' does not exist":
+
+1. Redeploy the application to ensure latest Dockerfile changes are applied
+2. SSH into container and verify /tmp exists:
+   ```bash
+   ls -la /tmp
+   # Should show: drwxrwxrwt (permissions 1777)
+   ```
+
+3. If /tmp doesn't exist or has wrong permissions:
+   ```bash
+   mkdir -p /tmp
+   chmod 1777 /tmp
+   chown root:root /tmp
+   ```
+
+4. Restart Apache:
+   ```bash
+   apache2ctl restart
+   ```
+
 ### Database Connection Issues
 
 If you see database connection errors:
