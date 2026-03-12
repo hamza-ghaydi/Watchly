@@ -73,9 +73,9 @@ RUN mkdir -p storage/framework/cache/data \
     storage/framework/sessions \
     storage/framework/views \
     storage/logs \
-    bootstrap/cache \
-    public/avatars && \
-    chown -R www-data:www-data storage bootstrap/cache public/avatars && \
+    storage/app/public/avatars \
+    bootstrap/cache && \
+    chown -R www-data:www-data storage bootstrap/cache && \
     chmod -R 775 storage bootstrap/cache
 
 # Create /tmp directory with proper permissions for PHP uploads

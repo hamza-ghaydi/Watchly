@@ -10,6 +10,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -43,24 +44,18 @@ class ProfileController extends Controller
         // Handle avatar upload
         if ($request->hasFile('avatar')) {
             // Delete old avatar if exists
-            if ($user->avatar && file_exists(public_path($user->avatar))) {
-                @unlink(public_path($user->avatar));
+            if ($user->avatar) {
+                $oldPath = str_replace('/storage/', '', $user->avatar);
+                \Storage::disk('public')->delete($oldPath);
             }
             
             $avatar = $request->file('avatar');
+            $filename = 'avatars/avatar_' . $user->id . '_' . time() . '.' . $avatar->getClientOriginalExtension();
             
-            // Ensure avatars directory exists
-            $avatarDir = public_path('avatars');
-            if (!file_exists($avatarDir)) {
-                mkdir($avatarDir, 0775, true);
-            }
-            
-            $filename = 'avatar_' . $user->id . '_' . time() . '.' . $avatar->getClientOriginalExtension();
-            
-            // Move file with error handling
+            // Store file with error handling
             try {
-                $avatar->move($avatarDir, $filename);
-                $user->avatar = '/avatars/' . $filename;
+                $path = $avatar->storeAs('avatars', basename($filename), 'public');
+                $user->avatar = '/storage/' . $path;
             } catch (\Exception $e) {
                 Log::error('Avatar upload failed: ' . $e->getMessage());
                 return back()->withErrors(['avatar' => 'Failed to upload avatar. Please try again.']);

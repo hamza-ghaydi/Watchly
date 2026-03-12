@@ -173,21 +173,21 @@ echo "Admin user created!";
 exit;
 ```
 
-## Step 10: Configure File Storage
+## Step 10: Configure Persistent Storage (IMPORTANT!)
 
-For persistent file storage (avatars, etc.):
+For persistent file storage (avatars, uploads):
 
-1. In CapRover app settings, go to **App Configs**
-2. Scroll to **Persistent Directories**
-3. Add:
-   - Path in App: `/var/www/html/storage/app/public`
-   - Label: `storage`
-4. Add another:
-   - Path in App: `/var/www/html/public/avatars`
-   - Label: `avatars`
+1. In CapRover app settings, go to **App Configs** tab
+2. Scroll to **Persistent Directories** section
+3. Click **Add Persistent Directory**
+4. Add this path:
+   - **Path in App**: `/var/www/html/storage/app/public`
+   - **Label**: `storage-public`
 5. Click **Save & Update**
 
-## Troubleshooting
+This ensures uploaded files (avatars) persist across container restarts and deployments.
+
+## Step 11: Create Admin User
 
 ### Missing Database Columns (bio, etc.)
 
