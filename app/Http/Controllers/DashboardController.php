@@ -83,6 +83,8 @@ class DashboardController extends Controller
 
     private function getWatchStats($user, $from = null, $to = null)
     {
+        $driver = DB::connection()->getDriverName();
+        
         // Daily stats (last 30 days)
         $dailyData = DB::table('movie_user')
             ->join('movies', 'movies.id', '=', 'movie_user.movie_id')
@@ -111,7 +113,13 @@ class DashboardController extends Controller
             ];
         }
 
-        // Monthly stats (last 12 months)
+        // Monthly stats (last 12 months) - Use database-specific date formatting
+        if ($driver === 'sqlite') {
+            $monthFormat = 'strftime("%Y-%m", movie_user.watched_at)';
+        } else {
+            $monthFormat = 'DATE_FORMAT(movie_user.watched_at, "%Y-%m")';
+        }
+
         $monthlyData = DB::table('movie_user')
             ->join('movies', 'movies.id', '=', 'movie_user.movie_id')
             ->where('movie_user.user_id', $user->id)
@@ -119,7 +127,7 @@ class DashboardController extends Controller
             ->whereNotNull('movie_user.watched_at')
             ->where('movie_user.watched_at', '>=', now()->subMonths(12))
             ->select(
-                DB::raw('strftime("%Y-%m", movie_user.watched_at) as month'),
+                DB::raw($monthFormat . ' as month'),
                 DB::raw('SUM(CASE WHEN movies.type = "movie" THEN 1 ELSE 0 END) as movies'),
                 DB::raw('SUM(CASE WHEN movies.type = "series" THEN 1 ELSE 0 END) as series')
             )
@@ -139,14 +147,20 @@ class DashboardController extends Controller
             ];
         }
 
-        // Yearly stats (all years)
+        // Yearly stats (all years) - Use database-specific year extraction
+        if ($driver === 'sqlite') {
+            $yearFormat = 'strftime("%Y", movie_user.watched_at)';
+        } else {
+            $yearFormat = 'YEAR(movie_user.watched_at)';
+        }
+
         $yearlyData = DB::table('movie_user')
             ->join('movies', 'movies.id', '=', 'movie_user.movie_id')
             ->where('movie_user.user_id', $user->id)
             ->where('movie_user.status', 'watched')
             ->whereNotNull('movie_user.watched_at')
             ->select(
-                DB::raw('strftime("%Y", movie_user.watched_at) as year'),
+                DB::raw($yearFormat . ' as year'),
                 DB::raw('SUM(CASE WHEN movies.type = "movie" THEN 1 ELSE 0 END) as movies'),
                 DB::raw('SUM(CASE WHEN movies.type = "series" THEN 1 ELSE 0 END) as series')
             )
