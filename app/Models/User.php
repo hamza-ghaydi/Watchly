@@ -107,4 +107,9 @@ class User extends Authenticatable
             ->withPivot('role', 'last_visited_at')
             ->withTimestamps();
     }
+
+    public function pushSubscriptions(): HasMany
+    {
+        return $this->hasMany(PushSubscription::class);
+    }
 }

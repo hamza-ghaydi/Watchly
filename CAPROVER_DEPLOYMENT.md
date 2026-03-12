@@ -58,21 +58,37 @@ LOG_LEVEL=error
 
 OMDB_API_KEY=your_omdb_api_key
 
+# VAPID Keys for Push Notifications (generate with: php artisan webpush:vapid)
+VAPID_PUBLIC_KEY=your_vapid_public_key
+VAPID_PRIVATE_KEY=your_vapid_private_key
+VAPID_SUBJECT=mailto:your-email@example.com
+
 RUN_SEEDS=false
 ```
 
 5. Click **Add/Update** to save
 
-## Step 4: Generate APP_KEY
+## Step 4: Generate APP_KEY and VAPID Keys
 
-1. On your local machine, run:
+1. On your local machine, generate APP_KEY:
    ```bash
    php artisan key:generate --show
    ```
 2. Copy the generated key (including `base64:` prefix)
-3. Add it to CapRover environment variables:
+
+3. Generate VAPID keys for push notifications:
+   ```bash
+   composer require minishlink/web-push
+   php artisan webpush:vapid
+   ```
+4. Copy the generated VAPID keys
+
+5. Add both to CapRover environment variables:
    ```
    APP_KEY=base64:your_generated_key_here
+   VAPID_PUBLIC_KEY=your_vapid_public_key
+   VAPID_PRIVATE_KEY=your_vapid_private_key
+   VAPID_SUBJECT=mailto:your-email@example.com
    ```
 
 ## Step 5: Enable HTTPS

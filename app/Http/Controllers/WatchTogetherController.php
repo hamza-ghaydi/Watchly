@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\WatchTogetherRoom;
 use App\Services\ActivityFeedService;
 use App\Services\OmdbService;
+use App\Services\WebPushService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -15,8 +16,10 @@ use Inertia\Inertia;
 
 class WatchTogetherController extends Controller
 {
-    public function __construct(private OmdbService $omdbService)
-    {
+    public function __construct(
+        private OmdbService $omdbService,
+        private WebPushService $webPushService
+    ) {
     }
 
     public function index()
@@ -122,13 +125,22 @@ class WatchTogetherController extends Controller
         // Notify owner
         $owner = $room->members()->wherePivot('role', 'owner')->first();
         if ($owner) {
+            $message = auth()->user()->name . ' joined your Watch Together room';
             Notification::create([
                 'user_id' => $owner->id,
                 'type' => 'watch_together_joined',
-                'message' => auth()->user()->name . ' joined your Watch Together room',
+                'message' => $message,
                 'url' => '/watch-together/' . $room->id,
                 'meta' => ['room_id' => $room->id],
             ]);
+
+            // Send push notification
+            $this->webPushService->sendNotification(
+                $owner,
+                'Watch Together',
+                $message,
+                url('/watch-together/' . $room->id)
+            );
         }
 
         return redirect()->route('watch-together.show', $room)->with('success', 'Joined room successfully!');
@@ -270,13 +282,22 @@ class WatchTogetherController extends Controller
         // Notify other member
         $otherMember = $room->members()->where('user_id', '!=', auth()->id())->first();
         if ($otherMember) {
+            $message = auth()->user()->name . ' added ' . $movie->title . ' to your room';
             Notification::create([
                 'user_id' => $otherMember->id,
                 'type' => 'watch_together_movie_added',
-                'message' => auth()->user()->name . ' added ' . $movie->title . ' to your room',
+                'message' => $message,
                 'url' => '/watch-together/' . $room->id,
                 'meta' => ['room_id' => $room->id, 'movie_id' => $movie->id],
             ]);
+
+            // Send push notification
+            $this->webPushService->sendNotification(
+                $otherMember,
+                'Watch Together',
+                $message,
+                url('/watch-together/' . $room->id)
+            );
         }
 
         // Record activity
@@ -373,14 +394,23 @@ class WatchTogetherController extends Controller
             ]);
 
             // Notify both members
+            $message = 'Both confirmed — ' . $movie->title . ' marked as watched!';
             foreach ($room->members as $member) {
                 Notification::create([
                     'user_id' => $member->id,
                     'type' => 'watch_together_watched',
-                    'message' => 'Both confirmed — ' . $movie->title . ' marked as watched!',
+                    'message' => $message,
                     'url' => '/watch-together/' . $room->id,
                     'meta' => ['room_id' => $room->id, 'movie_id' => $movie->id],
                 ]);
+
+                // Send push notification
+                $this->webPushService->sendNotification(
+                    $member,
+                    'Watch Together',
+                    $message,
+                    url('/watch-together/' . $room->id)
+                );
             }
 
             return back()->with('success', 'Movie marked as watched!');
@@ -393,13 +423,22 @@ class WatchTogetherController extends Controller
 
             // Notify other member
             if ($otherMember) {
+                $message = auth()->user()->name . ' marked ' . $movie->title . ' as watched — do you confirm?';
                 Notification::create([
                     'user_id' => $otherMember->id,
                     'type' => 'watch_together_watched',
-                    'message' => auth()->user()->name . ' marked ' . $movie->title . ' as watched — do you confirm?',
+                    'message' => $message,
                     'url' => '/watch-together/' . $room->id,
                     'meta' => ['room_id' => $room->id, 'movie_id' => $movie->id],
                 ]);
+
+                // Send push notification
+                $this->webPushService->sendNotification(
+                    $otherMember,
+                    'Watch Together',
+                    $message,
+                    url('/watch-together/' . $room->id)
+                );
             }
 
             return back()->with('success', 'Waiting for confirmation from other member');
@@ -464,13 +503,22 @@ class WatchTogetherController extends Controller
         ]);
 
         // Notify invited user
+        $message = auth()->user()->name . ' invited you to join "' . $room->name . '"';
         Notification::create([
             'user_id' => $invitedUser->id,
             'type' => 'watch_together_invited',
-            'message' => auth()->user()->name . ' invited you to join "' . $room->name . '"',
+            'message' => $message,
             'url' => '/watch-together/' . $room->id,
             'meta' => ['room_id' => $room->id, 'inviter_id' => auth()->id()],
         ]);
+
+        // Send push notification
+        $this->webPushService->sendNotification(
+            $invitedUser,
+            'Watch Together',
+            $message,
+            url('/watch-together/' . $room->id)
+        );
 
         return response()->json([
             'success' => true,

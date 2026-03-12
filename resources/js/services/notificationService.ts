@@ -21,6 +21,15 @@ export class NotificationService {
         if ('AudioContext' in window || 'webkitAudioContext' in window) {
             this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
         }
+
+        // Listen for messages from service worker to play sound
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                if (event.data && event.data.type === 'PLAY_NOTIFICATION_SOUND') {
+                    this.playSound();
+                }
+            });
+        }
     }
 
     static getInstance(): NotificationService {

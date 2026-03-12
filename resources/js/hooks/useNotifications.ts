@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { usePage, router } from '@inertiajs/react';
 import axios from 'axios';
 import { notificationService } from '@/services/notificationService';
+import { pushNotificationService } from '@/services/pushNotificationService';
 import { useNotificationContext } from '@/contexts/NotificationContext';
 
 interface Notification {
@@ -25,7 +26,15 @@ export function useNotifications() {
         // Request notification permission on mount
         notificationService.requestPermission();
 
-        // Poll for new notifications every 30 seconds
+        // Initialize push notifications for PWA
+        pushNotificationService.initialize().then(async (initialized) => {
+            if (initialized) {
+                // Subscribe to push notifications
+                await pushNotificationService.subscribe();
+            }
+        });
+
+        // Poll for new notifications every 10 seconds (more real-time)
         const checkForNewNotifications = async () => {
             try {
                 const response = await axios.get('/notifications');
@@ -69,11 +78,11 @@ export function useNotifications() {
             }
         };
 
-        // Initial check after 5 seconds
-        const initialTimeout = setTimeout(checkForNewNotifications, 5000);
+        // Initial check after 3 seconds
+        const initialTimeout = setTimeout(checkForNewNotifications, 3000);
 
-        // Then check every 30 seconds
-        intervalRef.current = setInterval(checkForNewNotifications, 30000);
+        // Then check every 10 seconds for more real-time updates
+        intervalRef.current = setInterval(checkForNewNotifications, 10000);
 
         return () => {
             clearTimeout(initialTimeout);

@@ -5,10 +5,15 @@ namespace App\Http\Controllers;
 use App\Models\Follow;
 use App\Models\Notification;
 use App\Models\User;
+use App\Services\WebPushService;
 use Illuminate\Http\Request;
 
 class FollowController extends Controller
 {
+    public function __construct(private WebPushService $webPushService)
+    {
+    }
+
     public function toggle(User $user)
     {
         // Cannot follow yourself
@@ -37,13 +42,22 @@ class FollowController extends Controller
             ]);
 
             // Notify target user
+            $message = auth()->user()->name . ' started following you';
             Notification::create([
                 'user_id' => $user->id,
                 'type' => 'new_follower',
-                'message' => auth()->user()->name . ' started following you',
+                'message' => $message,
                 'url' => '/users/' . auth()->user()->username,
                 'meta' => ['follower_id' => auth()->id()],
             ]);
+
+            // Send push notification
+            $this->webPushService->sendNotification(
+                $user,
+                'New Follower',
+                $message,
+                url('/users/' . auth()->user()->username)
+            );
 
             $following = true;
         }

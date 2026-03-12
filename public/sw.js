@@ -49,11 +49,67 @@ self.addEventListener('activate', (event) => {
     );
 });
 
-// Handle notification clicks
+// Handle push notifications
+self.addEventListener('push', (event) => {
+    const data = event.data ? event.data.json() : {};
+    const title = data.title || 'Watchly';
+    const options = {
+        body: data.body || 'You have a new notification',
+        icon: '/images/icon.png',
+        badge: '/images/icon.png',
+        vibrate: [200, 100, 200],
+        tag: data.tag || 'watchly-notification',
+        requireInteraction: false,
+        data: data.url ? { url: data.url } : {},
+        actions: data.url ? [
+            { action: 'open', title: 'Open' },
+            { action: 'close', title: 'Close' }
+        ] : [],
+    };
+    
+    event.waitUntil(
+        Promise.all([
+            self.registration.showNotification(title, options),
+            // Play notification sound
+            playNotificationSound()
+        ])
+    );
+});
+
+// Function to play notification sound
+async function playNotificationSound() {
+    try {
+        // Get all clients (open tabs/windows)
+        const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+        
+        // Send message to all clients to play sound
+        clients.forEach(client => {
+            client.postMessage({
+                type: 'PLAY_NOTIFICATION_SOUND'
+            });
+        });
+    } catch (error) {
+        console.log('Could not play notification sound:', error);
+    }
+}
+
+// Listen for messages from clients
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
+});
+
+// Handle notification action clicks
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
     
     const urlToOpen = event.notification.data?.url || '/';
+    
+    // Handle action buttons
+    if (event.action === 'close') {
+        return;
+    }
     
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true })
@@ -61,7 +117,7 @@ self.addEventListener('notificationclick', (event) => {
                 // Check if there's already a window open
                 for (let i = 0; i < windowClients.length; i++) {
                     const client = windowClients[i];
-                    if (client.url === urlToOpen && 'focus' in client) {
+                    if (client.url.includes(urlToOpen) && 'focus' in client) {
                         return client.focus();
                     }
                 }
@@ -70,21 +126,5 @@ self.addEventListener('notificationclick', (event) => {
                     return clients.openWindow(urlToOpen);
                 }
             })
-    );
-});
-
-// Handle push notifications (for future use with push API)
-self.addEventListener('push', (event) => {
-    const data = event.data ? event.data.json() : {};
-    const title = data.title || 'Watchly';
-    const options = {
-        body: data.body || 'You have a new notification',
-        icon: '/images/icon.png',
-        badge: '/images/icon.png',
-        data: data.url ? { url: data.url } : {},
-    };
-    
-    event.waitUntil(
-        self.registration.showNotification(title, options)
     );
 });

@@ -67,6 +67,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.mark-all-read');
     Route::post('notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
 
+    // Push Subscriptions
+    Route::get('push/public-key', [App\Http\Controllers\PushSubscriptionController::class, 'getPublicKey'])->name('push.public-key');
+    Route::post('push/subscribe', [App\Http\Controllers\PushSubscriptionController::class, 'store'])->name('push.subscribe');
+    Route::post('push/unsubscribe', [App\Http\Controllers\PushSubscriptionController::class, 'destroy'])->name('push.unsubscribe');
+
     // Admin routes
     Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
         // Settings
