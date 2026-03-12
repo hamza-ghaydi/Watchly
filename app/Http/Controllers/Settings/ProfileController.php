@@ -9,6 +9,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -43,13 +44,27 @@ class ProfileController extends Controller
         if ($request->hasFile('avatar')) {
             // Delete old avatar if exists
             if ($user->avatar && file_exists(public_path($user->avatar))) {
-                unlink(public_path($user->avatar));
+                @unlink(public_path($user->avatar));
             }
             
             $avatar = $request->file('avatar');
+            
+            // Ensure avatars directory exists
+            $avatarDir = public_path('avatars');
+            if (!file_exists($avatarDir)) {
+                mkdir($avatarDir, 0775, true);
+            }
+            
             $filename = 'avatar_' . $user->id . '_' . time() . '.' . $avatar->getClientOriginalExtension();
-            $avatar->move(public_path('avatars'), $filename);
-            $user->avatar = '/avatars/' . $filename;
+            
+            // Move file with error handling
+            try {
+                $avatar->move($avatarDir, $filename);
+                $user->avatar = '/avatars/' . $filename;
+            } catch (\Exception $e) {
+                Log::error('Avatar upload failed: ' . $e->getMessage());
+                return back()->withErrors(['avatar' => 'Failed to upload avatar. Please try again.']);
+            }
         }
 
         if ($user->isDirty('email')) {
@@ -59,7 +74,7 @@ class ProfileController extends Controller
         // Save all changes at once
         $saved = $user->save();
         
-        \Log::info('Profile save result', [
+        Log::info('Profile save result', [
             'saved' => $saved,
             'user_id' => $user->id,
             'bio_in_model' => $user->bio,

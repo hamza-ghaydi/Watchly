@@ -17,14 +17,12 @@ export class PushNotificationService {
 
     async initialize(): Promise<boolean> {
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-            console.log('Push notifications not supported');
             return false;
         }
 
         try {
             // Register service worker
             this.registration = await navigator.serviceWorker.register('/sw.js');
-            console.log('Service Worker registered');
 
             // Wait for service worker to be ready
             await navigator.serviceWorker.ready;
@@ -72,7 +70,6 @@ export class PushNotificationService {
             // Send subscription to backend
             await this.sendSubscriptionToBackend(subscription);
 
-            console.log('Push notification subscription successful');
             return true;
         } catch (error) {
             console.error('Failed to subscribe to push notifications:', error);
@@ -95,7 +92,6 @@ export class PushNotificationService {
             });
 
             this.subscription = null;
-            console.log('Push notification unsubscription successful');
             return true;
         } catch (error) {
             console.error('Failed to unsubscribe from push notifications:', error);

@@ -13,7 +13,6 @@ export class NotificationService {
         
         // Handle audio load errors gracefully
         this.audio.addEventListener('error', () => {
-            console.log('Notification sound not found. Using fallback beep.');
             this.audio = null;
         });
 
@@ -41,7 +40,6 @@ export class NotificationService {
 
     async requestPermission(): Promise<boolean> {
         if (!('Notification' in window)) {
-            console.log('This browser does not support notifications');
             return false;
         }
 
@@ -70,24 +68,27 @@ export class NotificationService {
 
         // Check if service worker is available (PWA)
         if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-            // Use service worker notification for PWA
+            // Use service worker notification for PWA - this prevents duplicates
             const registration = await navigator.serviceWorker.ready;
-            await registration.showNotification(title, {
+            const notificationOptions: NotificationOptions = {
                 icon: '/images/icon.png',
                 badge: '/images/icon.png',
                 requireInteraction: false,
-                vibrate: [200, 100, 200],
+                silent: true, // Prevent default sound since we play custom sound
                 ...options,
-            });
+            };
+            await registration.showNotification(title, notificationOptions);
             return null;
         } else {
             // Fallback to regular notification for web
-            const notification = new Notification(title, {
+            const notificationOptions: NotificationOptions = {
                 icon: '/images/icon.png',
                 badge: '/images/icon.png',
                 requireInteraction: false,
+                silent: true, // Prevent default sound since we play custom sound
                 ...options,
-            });
+            };
+            const notification = new Notification(title, notificationOptions);
 
             // Auto close after 5 seconds
             setTimeout(() => notification.close(), 5000);
@@ -129,7 +130,6 @@ export class NotificationService {
             oscillator.start(this.audioContext.currentTime);
             oscillator.stop(this.audioContext.currentTime + 0.3);
         } catch (err) {
-            console.log('Could not play fallback beep:', err);
         }
     }
 

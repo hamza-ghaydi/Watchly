@@ -12,7 +12,6 @@ self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
-                console.log('Opened cache');
                 return cache.addAll(urlsToCache);
             })
     );
@@ -60,6 +59,7 @@ self.addEventListener('push', (event) => {
         vibrate: [200, 100, 200],
         tag: data.tag || 'watchly-notification',
         requireInteraction: false,
+        silent: true, // Prevent default sound - we play custom sound via message
         data: data.url ? { url: data.url } : {},
         actions: data.url ? [
             { action: 'open', title: 'Open' },
@@ -89,7 +89,6 @@ async function playNotificationSound() {
             });
         });
     } catch (error) {
-        console.log('Could not play notification sound:', error);
     }
 }
 

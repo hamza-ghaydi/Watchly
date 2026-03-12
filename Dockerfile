@@ -18,6 +18,13 @@ RUN apt-get update && apt-get install -y \
 # Install PHP extensions
 RUN docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd zip intl
 
+# Configure PHP for file uploads
+RUN echo "upload_max_filesize = 10M" >> /usr/local/etc/php/conf.d/uploads.ini && \
+    echo "post_max_size = 10M" >> /usr/local/etc/php/conf.d/uploads.ini && \
+    echo "memory_limit = 256M" >> /usr/local/etc/php/conf.d/uploads.ini && \
+    echo "max_execution_time = 300" >> /usr/local/etc/php/conf.d/uploads.ini && \
+    echo "upload_tmp_dir = /tmp" >> /usr/local/etc/php/conf.d/uploads.ini
+
 # Enable Apache rewrite
 RUN a2enmod rewrite
 
@@ -65,9 +72,11 @@ RUN mkdir -p storage/framework/cache/data \
     storage/framework/views \
     storage/logs \
     bootstrap/cache \
-    public/avatars && \
-    chown -R www-data:www-data storage bootstrap/cache public/avatars && \
-    chmod -R 775 storage bootstrap/cache
+    public/avatars \
+    /tmp && \
+    chown -R www-data:www-data storage bootstrap/cache public/avatars /tmp && \
+    chmod -R 775 storage bootstrap/cache /tmp && \
+    chmod 1777 /tmp
 
 # Set Apache root
 RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf
