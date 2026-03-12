@@ -52,6 +52,11 @@ php artisan cache:clear
 echo "Running migrations..."
 php artisan migrate --force
 
+# Ensure sessions table exists for database driver
+echo "Ensuring sessions table exists..."
+php artisan session:table 2>/dev/null || true
+php artisan migrate --force
+
 echo "Ensuring schema is in sync with migrations..."
 php -r "
     \$pdo = new PDO(

@@ -15,27 +15,32 @@ echo ""
 
 # Fix avatars directory
 echo "2. Fixing avatars directory..."
-mkdir -p /var/www/html/public/avatars
-chown -R www-data:www-data /var/www/html/public/avatars
-chmod -R 775 /var/www/html/public/avatars
+mkdir -p /var/www/html/storage/app/public/avatars
+chown -R www-data:www-data /var/www/html/storage
+chmod -R 775 /var/www/html/storage
 echo "   ✓ Avatars directory fixed"
 echo ""
 
-# Fix storage permissions
-echo "3. Fixing storage permissions..."
-chown -R www-data:www-data /var/www/html/storage
-chmod -R 775 /var/www/html/storage
-echo "   ✓ Storage permissions fixed"
+# Ensure storage link exists
+echo "3. Creating storage link..."
+php artisan storage:link
+echo "   ✓ Storage link created"
+echo ""
+
+# Create sessions table
+echo "4. Creating sessions table..."
+php artisan session:table 2>/dev/null || echo "   (migration already exists)"
+echo "   ✓ Sessions table migration created"
 echo ""
 
 # Run migrations
-echo "4. Running database migrations..."
+echo "5. Running database migrations..."
 php artisan migrate --force
 echo "   ✓ Migrations completed"
 echo ""
 
 # Clear caches
-echo "5. Clearing caches..."
+echo "6. Clearing caches..."
 php artisan config:clear
 php artisan cache:clear
 php artisan view:clear
@@ -44,7 +49,7 @@ echo "   ✓ Caches cleared"
 echo ""
 
 # Rebuild caches
-echo "6. Rebuilding caches..."
+echo "7. Rebuilding caches..."
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
@@ -53,8 +58,9 @@ echo ""
 
 echo "=== All fixes applied successfully! ==="
 echo ""
-echo "You can now:"
-echo "  - Upload profile pictures"
-echo "  - Update bio"
-echo "  - All features should work properly"
+echo "IMPORTANT: Update your .env file with these settings:"
+echo "  SESSION_SECURE_COOKIE=true"
+echo "  SESSION_SAME_SITE=none"
+echo ""
+echo "Then restart your application for session fixes to take effect."
 echo ""
