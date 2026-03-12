@@ -6,24 +6,24 @@ php artisan config:clear
 
 echo "Waiting for MySQL and creating database..."
 until php -r "
-try {
     \$host = getenv('DB_HOST');
     \$port = getenv('DB_PORT') ?: '3306';
     \$user = getenv('DB_USERNAME');
     \$pass = getenv('DB_PASSWORD');
     \$db   = getenv('DB_DATABASE');
-
-    \$pdo = new PDO(\"mysql:host=\$host;port=\$port\", \$user, \$pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_TIMEOUT => 3,
-    ]);
-    \$pdo->exec(\"CREATE DATABASE IF NOT EXISTS \\\`\$db\\\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci\");
-    echo \"Database ready.\n\";
-    exit(0);
-} catch (Exception \$e) {
-    echo \$e->getMessage() . \"\n\";
-    exit(1);
-}
+    try {
+        \$pdo = new PDO(\"mysql:host=\$host;port=\$port\", \$user, \$pass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_TIMEOUT => 3,
+        ]);
+        \$sql = 'CREATE DATABASE IF NOT EXISTS ' . chr(96) . \$db . chr(96) . ' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci';
+        \$pdo->exec(\$sql);
+        echo \"Database ready.\n\";
+        exit(0);
+    } catch (Exception \$e) {
+        echo \$e->getMessage() . \"\n\";
+        exit(1);
+    }
 "; do
     echo "Database unavailable - retrying in 3s..."
     sleep 3
