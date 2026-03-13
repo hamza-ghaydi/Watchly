@@ -1,5 +1,5 @@
-// Service Worker for Watchly PWA - Minimal, Non-Intercepting Version
-const CACHE_NAME = 'watchly-v4';
+// Service Worker for Watchly PWA - iOS Safari 18+ Compatible
+const CACHE_NAME = 'watchly-v5-ios-fix';
 const STATIC_ASSETS = [
     '/images/icon.png',
     '/images/logowatchly.png',
@@ -8,13 +8,13 @@ const STATIC_ASSETS = [
 
 // Install event - cache static resources only
 self.addEventListener('install', (event) => {
-    console.log('[SW] Installing...');
+    console.log('[SW v5] Installing...');
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
-                console.log('[SW] Caching static assets');
+                console.log('[SW v5] Caching static assets');
                 return cache.addAll(STATIC_ASSETS).catch(err => {
-                    console.error('[SW] Failed to cache assets:', err);
+                    console.error('[SW v5] Failed to cache assets:', err);
                 });
             })
     );
@@ -23,14 +23,14 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-    console.log('[SW] Activating...');
+    console.log('[SW v5] Activating...');
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames
                     .filter((cacheName) => cacheName !== CACHE_NAME)
                     .map((cacheName) => {
-                        console.log('[SW] Deleting old cache:', cacheName);
+                        console.log('[SW v5] Deleting old cache:', cacheName);
                         return caches.delete(cacheName);
                     })
             );
@@ -39,42 +39,88 @@ self.addEventListener('activate', (event) => {
     clients.claim();
 });
 
-// Fetch event - CRITICAL: DO NOT INTERCEPT ANYTHING EXCEPT EXPLICIT STATIC ASSETS
+// Fetch event - CRITICAL: NEVER INTERCEPT NAVIGATION OR AUTHENTICATED REQUESTS
 self.addEventListener('fetch', (event) => {
     const { request } = event;
     const url = new URL(request.url);
 
-    // NEVER INTERCEPT:
-    // 1. Any HTML pages (navigation)
-    // 2. Any API calls
-    // 3. Any authenticated routes
-    // 4. Any POST/PUT/DELETE requests
-    // 5. Any Inertia requests
+    // CRITICAL FIX FOR iOS SAFARI 18+:
+    // NEVER intercept navigation requests - they must use browser's native fetch
+    // which includes session cookies. SW fetch() strips cookies on iOS Safari 18+.
+    if (request.mode === 'navigate') {
+        console.log('[SW v5] Bypassing navigation request:', url.pathname);
+        return; // Let browser handle it natively
+    }
+
+    // NEVER intercept authenticated routes - they need session cookies
+    const authRoutes = [
+        '/dashboard',
+        '/movies',
+        '/feed',
+        '/recommendations',
+        '/watch-together',
+        '/notifications',
+        '/users',
+        '/admin',
+        '/settings',
+        '/api/',
+    ];
     
-    // Only intercept explicit static assets we cached
+    if (authRoutes.some(route => url.pathname.startsWith(route))) {
+        console.log('[SW v5] Bypassing authenticated route:', url.pathname);
+        return; // Let browser handle it natively
+    }
+
+    // NEVER intercept POST/PUT/DELETE - they need CSRF tokens and session
+    if (request.method !== 'GET') {
+        console.log('[SW v5] Bypassing non-GET request:', request.method, url.pathname);
+        return; // Let browser handle it natively
+    }
+
+    // NEVER intercept Inertia requests - they need session state
+    if (request.headers.get('X-Inertia')) {
+        console.log('[SW v5] Bypassing Inertia request:', url.pathname);
+        return; // Let browser handle it natively
+    }
+
+    // Only cache explicit static assets we listed
     const isExplicitStaticAsset = STATIC_ASSETS.some(asset => url.pathname === asset);
     
-    if (!isExplicitStaticAsset) {
-        // Let the browser handle it normally - DO NOT INTERCEPT
+    // Also cache build assets and manifest
+    const isBuildAsset = url.pathname.startsWith('/build/') || 
+                         url.pathname.startsWith('/assets/') ||
+                         url.pathname === '/manifest.json';
+    
+    if (isExplicitStaticAsset || isBuildAsset) {
+        event.respondWith(
+            caches.match(request)
+                .then((response) => {
+                    if (response) {
+                        console.log('[SW v5] Serving from cache:', url.pathname);
+                        return response;
+                    }
+                    console.log('[SW v5] Fetching and caching:', url.pathname);
+                    return fetch(request).then(fetchResponse => {
+                        // Cache successful responses
+                        if (fetchResponse && fetchResponse.status === 200) {
+                            const responseToCache = fetchResponse.clone();
+                            caches.open(CACHE_NAME).then(cache => {
+                                cache.put(request, responseToCache);
+                            });
+                        }
+                        return fetchResponse;
+                    });
+                })
+                .catch((error) => {
+                    console.error('[SW v5] Fetch failed:', error);
+                    return fetch(request);
+                })
+        );
         return;
     }
 
-    // Only for our explicit static assets, try cache first
-    event.respondWith(
-        caches.match(request)
-            .then((response) => {
-                if (response) {
-                    console.log('[SW] Serving from cache:', url.pathname);
-                    return response;
-                }
-                console.log('[SW] Fetching from network:', url.pathname);
-                return fetch(request);
-            })
-            .catch((error) => {
-                console.error('[SW] Fetch failed:', error);
-                return fetch(request);
-            })
-    );
+    // Everything else: let browser handle it natively (no interception)
+    console.log('[SW v5] Bypassing other request:', url.pathname);
 });
 
 // Handle push notifications

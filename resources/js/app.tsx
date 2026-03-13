@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { initializeTheme } from '@/hooks/use-appearance';
 import '../css/app.css';
+import './lib/axios'; // Configure axios for iOS Safari
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 

@@ -5,6 +5,8 @@ import { AppSidebarHeader } from '@/components/app-sidebar-header';
 import { ToastNotifications } from '@/components/toast-notifications';
 import { useNotifications } from '@/hooks/useNotifications';
 import { NotificationProvider } from '@/contexts/NotificationContext';
+import { router } from '@inertiajs/react';
+import { useEffect } from 'react';
 import type { AppLayoutProps } from '@/types';
 
 export default function AppSidebarLayout({
@@ -26,6 +28,23 @@ function AppSidebarLayoutContent({
 }: AppLayoutProps) {
     // Initialize browser notifications
     useNotifications();
+
+    // Fix for iOS Safari bfcache (back/forward cache)
+    useEffect(() => {
+        const handlePageShow = (event: PageTransitionEvent) => {
+            // If page is restored from bfcache, reload to get fresh state
+            if (event.persisted) {
+                console.log('[iOS Fix] Page restored from bfcache, reloading...');
+                router.reload();
+            }
+        };
+
+        window.addEventListener('pageshow', handlePageShow);
+
+        return () => {
+            window.removeEventListener('pageshow', handlePageShow);
+        };
+    }, []);
 
     return (
         <AppShell variant="sidebar">

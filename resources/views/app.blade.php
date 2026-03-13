@@ -2,10 +2,11 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" @class(['dark' => ($appearance ?? 'system') == 'dark'])>
     <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
         {{-- Inline script to detect system dark mode preference and apply it immediately --}}
         <script>
@@ -91,6 +92,17 @@
                             .then(registration => {
                                 console.log('[PWA] Service Worker registered');
                                 
+                                // CRITICAL iOS FIX: Force waiting SW to activate immediately
+                                if (registration.waiting) {
+                                    console.log('[iOS Fix] Forcing waiting SW to activate');
+                                    registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                                    // Reload page when new SW activates
+                                    navigator.serviceWorker.addEventListener('controllerchange', () => {
+                                        console.log('[iOS Fix] New SW activated, reloading...');
+                                        window.location.reload();
+                                    });
+                                }
+                                
                                 // Check for updates every 60 seconds
                                 setInterval(() => {
                                     registration.update();
@@ -102,7 +114,8 @@
                                     newWorker.addEventListener('statechange', () => {
                                         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                                             console.log('[PWA] New service worker available');
-                                            // Don't auto-reload, let user refresh manually
+                                            // Force new SW to activate
+                                            newWorker.postMessage({ type: 'SKIP_WAITING' });
                                         }
                                     });
                                 });
