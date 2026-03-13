@@ -1,13 +1,32 @@
+import React from 'react';
 import { Link } from '@inertiajs/react';
 import { home } from '@/routes';
 import type { AuthLayoutProps } from '@/types';
 import images from '@/constants/images';
 
-export default function AuthSimpleLayout({
+function AuthSimpleLayout({
     children,
     title,
     description,
 }: AuthLayoutProps) {
+    // Fix for iOS Safari: Force page reload when restored from bfcache
+    // iOS Safari aggressively caches pages, causing stale CSRF tokens
+    React.useEffect(() => {
+        const handlePageShow = (event: PageTransitionEvent) => {
+            // If page is restored from bfcache, reload to get fresh CSRF token
+            if (event.persisted) {
+                console.log('[iOS Fix] Page restored from cache, reloading for fresh CSRF token');
+                window.location.reload();
+            }
+        };
+
+        window.addEventListener('pageshow', handlePageShow);
+
+        return () => {
+            window.removeEventListener('pageshow', handlePageShow);
+        };
+    }, []);
+
     return (
         <div className="relative min-h-svh flex items-center justify-center overflow-hidden">
 
