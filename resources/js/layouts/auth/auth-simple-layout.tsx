@@ -115,3 +115,5 @@ function AuthSimpleLayout({
         </div>
     );
 }
+
+export default AuthSimpleLayout;
